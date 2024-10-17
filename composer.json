@@ -1,0 +1,17 @@
+{
+    "name": "luc/tool-v2",
+    "autoload": {
+        "psr-4": {
+            "Luc\\ToolV2\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Luc",
+            "email": "43239614+lbergougniou@users.noreply.github.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.9"
+    }
+}
