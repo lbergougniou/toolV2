@@ -53,10 +53,9 @@ function saveCache($email, $result) {
  * @param string $event Nom de l'événement
  * @param array $data Données à envoyer (sera encodé en JSON)
  */
-function sendEvent($event, $data)
-{
-    echo "event: $event\n";
-    echo "data: ". json_encode($data). "\n\n";
+function sendEvent($event, $data) {
+    echo "event: " . htmlspecialchars($event) . "\n";
+    echo "data: " . json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . "\n\n";
     ob_flush();
     flush();
 }
@@ -78,6 +77,30 @@ function setupSseHeaders()
  */
 function handleEmailVerification($email)
 {
+    // Validation stricte de l'email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        sendEvent('error', [
+            'message' => 'Format d\'email invalide'
+        ]);
+        exit;
+    }
+    
+    // Limiter la longueur de l'email
+    if (strlen($email) > 254) {
+        sendEvent('error', [
+            'message' => 'Email trop long'
+        ]);
+        exit;
+    }
+    
+    // Protection contre les injections CRLF
+    if (preg_match('/[\r\n]/', $email)) {
+        sendEvent('error', [
+            'message' => 'Caractères non autorisés dans l\'email'
+        ]);
+        exit;
+    }
+
     // Vérifier le cache
     $cachedResult = checkCache($email);
     if ($cachedResult!== null) {
@@ -505,6 +528,7 @@ if (isset($_GET['stream'])) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="js/email_validator.js"></script>
 </body>
 </html>

@@ -71,8 +71,10 @@ class MailjetClient {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_USERPWD => "{$this->apiKey}:{$this->secretKey}",
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0
+            CURLOPT_SSL_VERIFYPEER => false, // A adapter hors local
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 30
         ]);
         return $ch;
     }
@@ -177,45 +179,48 @@ class MailjetClient {
      * @return array Résultat avec l'ID du job en cas de succès
      * @throws MailjetException En cas d'erreur lors du lancement de la vérification
      */
-    public function launchVerification($listId, $method = 'fulllist') {
+    public function launchVerification($listId, $method = 'fulllist')
+    {
         if (!$this->hasValidCredentials()) {
             throw MailjetException::missingCredentials();
         }
         
         $this->log("Lancement de la vérification de la liste {$listId} (méthode: {$method})");
         
-        $ch = $this->initCurlHandle();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => "https://api.mailjet.com/v3/REST/contactslist/{$listId}/verify",
-            CURLOPT_POSTFIELDS => json_encode(['Method' => $method])
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $this->log("Réponse Mailjet (lancement verification): HTTP {$httpCode}");
-        
-        if (curl_errno($ch) || $httpCode !== 201) {
-            $exception = MailjetException::fromCurlResponse(
-                $ch, 
-                "Erreur lors du lancement de la vérification", 
-                'VERIFICATION_LAUNCH_ERROR', 
-                ['listId' => $listId, 'method' => $method]
-            );
+        return $this->retryApiCall(function() use ($listId, $method) {
+            $ch = $this->initCurlHandle();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => "https://api.mailjet.com/v3/REST/contactslist/{$listId}/verify",
+                CURLOPT_POSTFIELDS => json_encode(['Method' => $method])
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $this->log("Réponse Mailjet (lancement verification): HTTP {$httpCode}");
+            
+            if (curl_errno($ch) || $httpCode !== 201) {
+                $exception = MailjetException::fromCurlResponse(
+                    $ch, 
+                    "Erreur lors du lancement de la vérification", 
+                    'VERIFICATION_LAUNCH_ERROR', 
+                    ['listId' => $listId, 'method' => $method]
+                );
+                curl_close($ch);
+                throw $exception;
+            }
+            
+            $data = json_decode($response, true);
             curl_close($ch);
-            throw $exception;
-        }
-        
-        $data = json_decode($response, true);
-        curl_close($ch);
-        
-        if (!isset($data['Data'][0]['JobID'])) {
-            throw MailjetException::invalidResponseFormat($response, 'Data[0][JobID]');
-        }
-        
-        return [
-            'success' => true,
-            'jobId' => $data['Data'][0]['JobID']
-        ];
+            
+            if (!isset($data['Data'][0]['JobID'])) {
+                throw MailjetException::invalidResponseFormat($response, 'Data[0][JobID]');
+            }
+            
+            return [
+                'success' => true,
+                'jobId' => $data['Data'][0]['JobID']
+            ];
+        });
     }
     
     /**
@@ -559,7 +564,62 @@ class MailjetClient {
         
         return $message;
     }
-    
+
+    /**
+     * Exécute un appel API avec retries automatiques en cas d'erreur temporaire
+     * @param callable $apiCall Fonction d'appel API à exécuter
+     * @param int $maxRetries Nombre maximum de tentatives
+     * @param array $retryableHttpCodes Codes HTTP à considérer comme réessayables
+     * @return mixed Résultat de l'appel API
+     */
+    private function retryApiCall(callable $apiCall, $maxRetries = 3, $retryableHttpCodes = [429, 500, 502, 503, 504])
+    {
+        $attempt = 0;
+        $lastException = null;
+        
+        while ($attempt < $maxRetries) {
+            try {
+                return $apiCall();
+            } catch (\Exception $e) {
+                $lastException = $e;
+                $httpCode = $this->getHttpCodeFromException($e);
+                
+                // Si l'erreur n'est pas réessayable, arrêter immédiatement
+                if (!in_array($httpCode, $retryableHttpCodes)) {
+                    break;
+                }
+                
+                // Backoff exponentiel
+                $sleepTime = pow(2, $attempt) * 1000000; // en microsecondes
+                $this->log("Erreur temporaire détectée (code: $httpCode). Nouvel essai dans " . ($sleepTime/1000000) . " secondes");
+                usleep($sleepTime);
+                $attempt++;
+            }
+        }
+        
+        // Toutes les tentatives ont échoué
+        throw $lastException;
+    }
+
+    /**
+     * Extrait le code HTTP d'une exception
+     * @param \Exception $e Exception
+     * @return int Code HTTP ou 0 si non trouvé
+     */
+    private function getHttpCodeFromException(\Exception $e)
+    {
+        if (method_exists($e, 'getCode')) {
+            return $e->getCode();
+        }
+        
+        // Extraire le code HTTP du message d'erreur si possible
+        if (preg_match('/HTTP (\d+)/', $e->getMessage(), $matches)) {
+            return (int)$matches[1];
+        }
+        
+        return 0;
+    }
+        
     /**
      * Enregistre un message de log
      *
