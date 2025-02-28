@@ -79,6 +79,7 @@ class MailjetClient {
         return $ch;
     }
     
+
     /**
      * Crée une liste de contacts Mailjet
      *
@@ -535,31 +536,28 @@ class MailjetClient {
     
     /**
      * Formate un message de statut lisible
+     * Utilise les constantes définies dans App\Config\MailjetCodes
      *
      * @param string $status Statut de l'email
      * @param string $riskLevel Niveau de risque
      * @return string Message formaté
      */
     private function formatStatusMessage($status, $riskLevel) {
-        $statusMessages = [
-            'deliverable' => 'Délivrable',
-            'catch_all' => 'Catch-all (accepte tous les emails)',
-            'undeliverable' => 'Non délivrable',
-            'do_not_send' => 'Ne pas envoyer',
-            'unknown' => 'Statut inconnu'
-        ];
+        $statusMessages = \App\Config\MailjetCodes::RESULT_CODES;
+        $riskMessages = \App\Config\MailjetCodes::RISK_LEVELS;
         
-        $riskMessages = [
-            'low' => 'risque faible',
-            'medium' => 'risque moyen',
-            'high' => 'risque élevé',
+        // Convertir le niveau de risque pour l'affichage
+        $riskMap = [
+            'low' => 'faible',
+            'medium' => 'moyen',
+            'high' => 'élevé',
             'unknown' => ''
         ];
         
         $message = $statusMessages[$status] ?? 'Statut inconnu';
         
         if ($status === 'deliverable' && $riskLevel !== 'unknown') {
-            $message .= ' avec ' . $riskMessages[$riskLevel];
+            $message .= ' avec ' . ($riskMap[$riskLevel] ?? $riskLevel);
         }
         
         return $message;
