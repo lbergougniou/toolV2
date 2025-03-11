@@ -2,3 +2,7 @@
 .env
 .idea/
 *.log
+/Python/
+/tests/
+/venv/
+/.vscode/
