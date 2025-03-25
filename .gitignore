@@ -2,7 +2,9 @@
 .env
 .idea/
 *.log
-/Python/
+/Python/Signature_workspace
+/Python/Signature_workspace.client_scret.json
+/Python/Signature_workspace.token.json  
 /tests/
 */venv/
 /.vscode/
