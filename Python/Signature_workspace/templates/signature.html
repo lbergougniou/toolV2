@@ -1,0 +1,317 @@
+<!-- templates/signature.html -->
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Éditer la signature de {{ user_email }}</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="container mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Éditeur de signature</h1>
+                <a
+                    href="{{ url_for('index') }}"
+                    class="btn btn-outline-secondary"
+                    >Retour à la liste</a
+                >
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        {{ user_info.get('name', {}).get('fullName', '') }} ({{
+                        user_email }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages() %} {% if messages
+                    %} {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                    {% endfor %} {% endif %} {% endwith %} {% if send_as_list %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Adresses email disponibles</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>
+                                Vous pouvez personnaliser la signature pour
+                                chacune de ces adresses :
+                            </p>
+                            <div class="row">
+                                {% for email in send_as_list %}
+                                <div class="col-md-6 mb-2">
+                                    <div
+                                        class="card {% if email.sendAsEmail == selected_email %}border-primary{% endif %}"
+                                    >
+                                        <div class="card-body py-2">
+                                            <div
+                                                class="d-flex justify-content-between align-items-center"
+                                            >
+                                                <span
+                                                    >{{ email.sendAsEmail
+                                                    }}</span
+                                                >
+                                                <a
+                                                    href="{{ url_for('signature', user_email=user_email, selected_email=email.sendAsEmail) }}"
+                                                    class="btn btn-sm {% if email.sendAsEmail == selected_email %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                                                >
+                                                    {% if email.sendAsEmail ==
+                                                    selected_email
+                                                    %}Sélectionnée{% else
+                                                    %}Modifier{% endif %}
+                                                </a>
+                                            </div>
+                                            {% if email.sendAsEmail ==
+                                            selected_email %}
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    Vous éditez actuellement
+                                                    cette signature
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="post">
+                        <input
+                            type="hidden"
+                            name="target_email"
+                            value="{{ selected_email }}"
+                        />
+
+                        <div class="mb-3">
+                            <label for="signatureEditor" class="form-label"
+                                >Éditeur de signature HTML</label
+                            >
+                            <textarea
+                                id="signatureEditor"
+                                name="signature"
+                                class="form-control"
+                            >
+{{ current_signature|safe }}</textarea
+                            >
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"
+                                >Variables disponibles</label
+                            >
+                            <div class="d-flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary variable-btn"
+                                    data-var="{NOM}"
+                                >
+                                    Nom
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary variable-btn"
+                                    data-var="{FONCTION}"
+                                >
+                                    Fonction
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary variable-btn"
+                                    data-var="{EMAIL}"
+                                >
+                                    Email
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary variable-btn"
+                                    data-var="{TELEPHONE}"
+                                >
+                                    Téléphone
+                                </button>
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary variable-btn"
+                                    data-var="{DEPARTEMENT}"
+                                >
+                                    Département
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"
+                                >Modèles de signature</label
+                            >
+                            <div class="row">
+                                {% for template in signature_templates %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-header py-2">
+                                            {{ template.name }}
+                                        </div>
+                                        <div class="card-body small">
+                                            <div class="template-preview">
+                                                {{ template.html|safe }}
+                                            </div>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-primary w-100 apply-template"
+                                                data-template="{{ template.html|e }}"
+                                            >
+                                                Appliquer ce modèle
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Prévisualisation</h6>
+                                    </div>
+                                    <div class="card-body bg-light">
+                                        <div id="signaturePreview"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button
+                                type="button"
+                                class="btn btn-info"
+                                id="previewBtn"
+                            >
+                                Actualiser la prévisualisation
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                Enregistrer la signature pour {{ selected_email
+                                }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+        <script>
+            $(document).ready(function () {
+                // Initialiser l'éditeur Summernote
+                $("#signatureEditor").summernote({
+                    height: 300,
+                    toolbar: [
+                        ["style", ["style"]],
+                        ["font", ["bold", "italic", "underline", "clear"]],
+                        ["fontname", ["fontname"]],
+                        ["color", ["color"]],
+                        ["para", ["ul", "ol", "paragraph"]],
+                        ["table", ["table"]],
+                        ["insert", ["link", "picture"]],
+                        ["view", ["fullscreen", "codeview"]],
+                    ],
+                    callbacks: {
+                        onImageUpload: function (files) {
+                            for (let i = 0; i < files.length; i++) {
+                                uploadImage(files[i]);
+                            }
+                        },
+                    },
+                });
+
+                // Fonction pour uploader une image
+                function uploadImage(file) {
+                    let formData = new FormData();
+                    formData.append("image", file);
+
+                    $.ajax({
+                        url: "/api/upload-image",
+                        method: "POST",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (data) {
+                            // Important : ajouter un attribut alt pour identifier l'image plus tard
+                            const uniqueId = "img-" + new Date().getTime();
+                            $("#signatureEditor").summernote(
+                                "insertImage",
+                                data.url,
+                                uniqueId
+                            );
+
+                            // Ajout manuel de l'attribut alt
+                            setTimeout(function () {
+                                const editor =
+                                    $("#signatureEditor").summernote("code");
+                                const updatedEditor = editor.replace(
+                                    `src="${data.url}"`,
+                                    `src="${data.url}" alt="${uniqueId}"`
+                                );
+                                $("#signatureEditor").summernote(
+                                    "code",
+                                    updatedEditor
+                                );
+                            }, 100);
+                        },
+                        error: function (jqXHR, textStatus, errorThrown) {
+                            console.error(textStatus + ": " + errorThrown);
+                            alert("Erreur lors de l'upload de l'image");
+                        },
+                    });
+                }
+
+                // Ajouter des variables à l'éditeur
+                $(".variable-btn").click(function () {
+                    const variableText = $(this).data("var");
+                    $("#signatureEditor").summernote(
+                        "insertText",
+                        variableText
+                    );
+                });
+
+                // Appliquer un modèle
+                $(".apply-template").click(function () {
+                    const templateHtml = $(this).data("template");
+                    if (
+                        confirm(
+                            "Êtes-vous sûr de vouloir remplacer le contenu actuel par ce modèle ?"
+                        )
+                    ) {
+                        $("#signatureEditor").summernote("code", templateHtml);
+                        $("#previewBtn").click();
+                    }
+                });
+
+                // Gérer la prévisualisation
+                $("#previewBtn").click(function () {
+                    const content = $("#signatureEditor").summernote("code");
+                    $("#signaturePreview").html(content);
+                });
+
+                // Prévisualiser au chargement
+                $("#previewBtn").click();
+            });
+        </script>
+    </body>
+</html>

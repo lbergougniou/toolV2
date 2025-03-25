@@ -1,0 +1,137 @@
+<!-- templates/user_info.html -->
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Éditer les informations de {{ user_email }}</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="container mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Éditer les informations utilisateur</h1>
+                <div>
+                    <a href="{{ url_for('signature', user_email=user_email) }}" class="btn btn-outline-primary me-2">
+                        Voir la signature
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                        Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        {{ user_info.get('name', {}).get('fullName', '') }} ({{ user_email }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-info">{{ message }}</div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form method="post">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="firstName" class="form-label">Prénom</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="firstName"
+                                    name="firstName"
+                                    value="{{ first_name }}"
+                                />
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="lastName" class="form-label">Nom</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="lastName"
+                                    name="lastName"
+                                    value="{{ last_name }}"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="jobTitle" class="form-label">Fonction / Titre</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="jobTitle"
+                                    name="jobTitle"
+                                    value="{{ job_title }}"
+                                />
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="department" class="form-label">Département</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="department"
+                                    name="department"
+                                    value="{{ department }}"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phoneNumber" class="form-label">Numéro de téléphone</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                value="{{ phone_number }}"
+                            />
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Informations additionnelles</h5>
+                </div>
+                <div class="card-body">
+                    <p>
+                        <strong>Email principal :</strong> {{ user_info.get('primaryEmail', '') }}
+                    </p>
+                    <p>
+                        <strong>Date de création :</strong> {{ user_info.get('creationTime', '') }}
+                    </p>
+                    <p>
+                        <strong>Dernière connexion :</strong> {{ user_info.get('lastLoginTime', '') }}
+                    </p>
+                    <p>
+                        <strong>État du compte :</strong>
+                        <span class="badge {% if user_info.get('suspended') %}bg-danger{% else %}bg-success{% endif %}">
+                            {% if user_info.get('suspended') %}Suspendu{% else %}Actif{% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+</html>

@@ -3,11 +3,7 @@
 .idea/
 *.log
 /tests/
-*/venv/
+**/venv/
 /.vscode/
-*/static/
-/Python/Signature_workspace/static
-/Python/Signature_workspace/templates
-/Python/Signature_workspace/venv
-/Python/Signature_workspace/client_secret.json
-/Python/Signature_workspace.token.json  
+**/static/
+/Python/Signature_workspace/*.json
