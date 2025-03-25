@@ -2,10 +2,12 @@
 .env
 .idea/
 *.log
-/Python/Signature_workspace
-/Python/Signature_workspace.client_scret.json
-/Python/Signature_workspace.token.json  
 /tests/
 */venv/
 /.vscode/
 */static/
+/Python/Signature_workspace/static
+/Python/Signature_workspace/templates
+/Python/Signature_workspace/venv
+/Python/Signature_workspace/client_secret.json
+/Python/Signature_workspace.token.json  
