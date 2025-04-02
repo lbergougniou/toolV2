@@ -1,0 +1,1375 @@
+{
+    "metadata": {
+        "version": "1.0.0",
+        "lastUpdated": "2025-04-01"
+    },
+    "countries": [
+        {
+            "code": "fr",
+            "alpha3": "FRA",
+            "name": {
+                "fr": "France",
+                "en": "France"
+            },
+            "timezones": {
+                "fr": "Europe/Paris",
+                "en": "Europe/Paris"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+33",
+                "territory": null
+            }
+        },
+        {
+            "code": "re",
+            "alpha3": "REU",
+            "name": {
+                "fr": "La Réunion",
+                "en": "Reunion"
+            },
+            "timezones": {
+                "fr": "Océan_Indien/Réunion",
+                "en": "Indian/Reunion"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+262",
+                "subPrefixes": [
+                    "262262"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "yt",
+            "alpha3": "MYT",
+            "name": {
+                "fr": "Mayotte",
+                "en": "Mayotte"
+            },
+            "timezones": {
+                "fr": "Océan Indien/Mayotte",
+                "en": "Indian/Mayotte"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+262",
+                "subPrefixes": [
+                    "262639"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "gp",
+            "alpha3": "GLP",
+            "name": {
+                "fr": "Guadeloupe",
+                "en": "Guadeloupe"
+            },
+            "timezones": {
+                "fr": "Amérique/Guadeloupe",
+                "en": "America/Guadeloupe"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+590",
+                "subPrefixes": [
+                    "590690",
+                    "590691"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "mq",
+            "alpha3": "MTQ",
+            "name": {
+                "fr": "Martinique",
+                "en": "Martinique"
+            },
+            "timezones": {
+                "fr": "Amérique/Martinique",
+                "en": "America/Martinique"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+596",
+                "subPrefixes": [
+                    "596696",
+                    "596697"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "gf",
+            "alpha3": "GUF",
+            "name": {
+                "fr": "Guyane française",
+                "en": "French Guiana"
+            },
+            "timezones": {
+                "fr": "Amérique/Cayenne",
+                "en": "America/Cayenne"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+594",
+                "subPrefixes": [
+                    "594694"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "bl",
+            "alpha3": "BLM",
+            "name": {
+                "fr": "Saint-Barthélemy",
+                "en": "Saint Barthélemy"
+            },
+            "timezones": {
+                "fr": "Amérique/St_Barthélemy",
+                "en": "America/St_Barthelemy"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+590",
+                "subPrefixes": [
+                    "590590"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "mf",
+            "alpha3": "MAF",
+            "name": {
+                "fr": "Saint-Martin",
+                "en": "Saint Martin"
+            },
+            "timezones": {
+                "fr": "Amérique/Marigot",
+                "en": "America/Marigot"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+590",
+                "subPrefixes": [
+                    "590690"
+                ],
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "pm",
+            "alpha3": "SPM",
+            "name": {
+                "fr": "Saint-Pierre-et-Miquelon",
+                "en": "Saint Pierre and Miquelon"
+            },
+            "timezones": {
+                "fr": "Amérique/Miquelon",
+                "en": "America/Miquelon"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+508",
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "wf",
+            "alpha3": "WLF",
+            "name": {
+                "fr": "Wallis-et-Futuna",
+                "en": "Wallis and Futuna"
+            },
+            "timezones": {
+                "fr": "Pacifique/Wallis",
+                "en": "Pacific/Wallis"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+681",
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "pf",
+            "alpha3": "PYF",
+            "name": {
+                "fr": "Polynésie française",
+                "en": "French Polynesia"
+            },
+            "timezones": {
+                "fr": "Pacifique/Tahiti",
+                "en": "Pacific/Tahiti"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+689",
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "nc",
+            "alpha3": "NCL",
+            "name": {
+                "fr": "Nouvelle-Calédonie",
+                "en": "New Caledonia"
+            },
+            "timezones": {
+                "fr": "Pacifique/Nouméa",
+                "en": "Pacific/Noumea"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+687",
+                "territory": "fr"
+            }
+        },
+        {
+            "code": "us",
+            "alpha3": "USA",
+            "name": {
+                "fr": "États-Unis",
+                "en": "United States"
+            },
+            "timezones": {
+                "fr": "Amérique/New_York",
+                "en": "America/New_York"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+1",
+                "territory": null
+            }
+        },
+        {
+            "code": "SA",
+            "alpha3": "SAU",
+            "name": {
+                "fr": "Arabie Saoudite",
+                "en": "Saudi arabia"
+            },
+            "timezones": {
+                "fr": "Asie/Riyad",
+                "en": "Asia/Riyadh"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+996",
+                "territory": null
+            }
+        },
+        {
+            "code": "ca",
+            "alpha3": "CAN",
+            "name": {
+                "fr": "Canada",
+                "en": "Canada"
+            },
+            "timezones": {
+                "fr": "Amérique/Toronto",
+                "en": "America/Toronto"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+1",
+                "territory": null
+            }
+        },
+        {
+            "code": "gb",
+            "alpha3": "GBR",
+            "name": {
+                "fr": "Royaume-Uni",
+                "en": "United Kingdom"
+            },
+            "timezones": {
+                "fr": "Europe/Londres",
+                "en": "Europe/London"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+44",
+                "territory": null
+            }
+        },
+        {
+            "code": "de",
+            "alpha3": "DEU",
+            "name": {
+                "fr": "Allemagne",
+                "en": "Germany"
+            },
+            "timezones": {
+                "fr": "Europe/Berlin",
+                "en": "Europe/Berlin"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+49",
+                "territory": null
+            }
+        },
+        {
+            "code": "it",
+            "alpha3": "ITA",
+            "name": {
+                "fr": "Italie",
+                "en": "Italy"
+            },
+            "timezones": {
+                "fr": "Europe/Rome",
+                "en": "Europe/Rome"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+39",
+                "territory": null
+            }
+        },
+        {
+            "code": "es",
+            "alpha3": "ESP",
+            "name": {
+                "fr": "Espagne",
+                "en": "Spain"
+            },
+            "timezones": {
+                "fr": "Europe/Madrid",
+                "en": "Europe/Madrid"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+34",
+                "territory": null
+            }
+        },
+        {
+            "code": "be",
+            "alpha3": "BEL",
+            "name": {
+                "fr": "Belgique",
+                "en": "Belgium"
+            },
+            "timezones": {
+                "fr": "Europe/Bruxelles",
+                "en": "Europe/Brussels"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+32",
+                "territory": null
+            }
+        },
+        {
+            "code": "ch",
+            "alpha3": "CHE",
+            "name": {
+                "fr": "Suisse",
+                "en": "Switzerland"
+            },
+            "timezones": {
+                "fr": "Europe/Zurich",
+                "en": "Europe/Zurich"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+41",
+                "territory": null
+            }
+        },
+        {
+            "code": "lu",
+            "alpha3": "LUX",
+            "name": {
+                "fr": "Luxembourg",
+                "en": "Luxembourg"
+            },
+            "timezones": {
+                "fr": "Europe/Luxembourg",
+                "en": "Europe/Luxembourg"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+352",
+                "territory": null
+            }
+        },
+        {
+            "code": "nl",
+            "alpha3": "NLD",
+            "name": {
+                "fr": "Pays-Bas",
+                "en": "Netherlands"
+            },
+            "timezones": {
+                "fr": "Europe/Amsterdam",
+                "en": "Europe/Amsterdam"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+31",
+                "territory": null
+            }
+        },
+        {
+            "code": "ma",
+            "alpha3": "MAR",
+            "name": {
+                "fr": "Maroc",
+                "en": "Morocco"
+            },
+            "timezones": {
+                "fr": "Afrique/Casablanca",
+                "en": "Africa/Casablanca"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+212",
+                "territory": null
+            }
+        },
+        {
+            "code": "dz",
+            "alpha3": "DZA",
+            "name": {
+                "fr": "Algérie",
+                "en": "Algeria"
+            },
+            "timezones": {
+                "fr": "Afrique/Alger",
+                "en": "Africa/Algiers"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+213",
+                "territory": null
+            }
+        },
+        {
+            "code": "tn",
+            "alpha3": "TUN",
+            "name": {
+                "fr": "Tunisie",
+                "en": "Tunisia"
+            },
+            "timezones": {
+                "fr": "Afrique/Tunis",
+                "en": "Africa/Tunis"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+216",
+                "territory": null
+            }
+        },
+        {
+            "code": "kz",
+            "alpha3": "KAZ",
+            "name": {
+                "fr": "Kazakhstan",
+                "en": "Kazakhstan"
+            },
+            "timezones": {
+                "fr": "Asie/Almaty",
+                "en": "Asia/Almaty"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+7",
+                "territory": null
+            }
+        },
+        {
+            "code": "ae",
+            "alpha3": "ARE",
+            "name": {
+                "fr": "Émirats arabes unis",
+                "en": "United Arab Emirates"
+            },
+            "timezones": {
+                "fr": "Asie/Dubaï",
+                "en": "Asia/Dubai"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+971",
+                "territory": null
+            }
+        },
+        {
+            "code": "eg",
+            "alpha3": "EGY",
+            "name": {
+                "fr": "Égypte",
+                "en": "Egypt"
+            },
+            "timezones": {
+                "fr": "Afrique/Le_Caire",
+                "en": "Africa/Cairo"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+20",
+                "territory": null
+            }
+        },
+        {
+            "code": "lb",
+            "alpha3": "LBN",
+            "name": {
+                "fr": "Liban",
+                "en": "Lebanon"
+            },
+            "timezones": {
+                "fr": "Asie/Beyrouth",
+                "en": "Asia/Beirut"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+961",
+                "territory": null
+            }
+        },
+        {
+            "code": "jo",
+            "alpha3": "JOR",
+            "name": {
+                "fr": "Jordanie",
+                "en": "Jordan"
+            },
+            "timezones": {
+                "fr": "Asie/Amman",
+                "en": "Asia/Amman"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+962",
+                "territory": null
+            }
+        },
+        {
+            "code": "qa",
+            "alpha3": "QAT",
+            "name": {
+                "fr": "Qatar",
+                "en": "Qatar"
+            },
+            "timezones": {
+                "fr": "Asie/Doha",
+                "en": "Asia/Qatar"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+974",
+                "territory": null
+            }
+        },
+        {
+            "code": "kw",
+            "alpha3": "KWT",
+            "name": {
+                "fr": "Koweït",
+                "en": "Kuwait"
+            },
+            "timezones": {
+                "fr": "Asie/Koweït",
+                "en": "Asia/Kuwait"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+965",
+                "territory": null
+            }
+        },
+        {
+            "code": "iq",
+            "alpha3": "IRQ",
+            "name": {
+                "fr": "Irak",
+                "en": "Iraq"
+            },
+            "timezones": {
+                "fr": "Asie/Bagdad",
+                "en": "Asia/Baghdad"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+964",
+                "territory": null
+            }
+        },
+        {
+            "code": "sy",
+            "alpha3": "SYR",
+            "name": {
+                "fr": "Syrie",
+                "en": "Syria"
+            },
+            "timezones": {
+                "fr": "Asie/Damas",
+                "en": "Asia/Damascus"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+963",
+                "territory": null
+            }
+        },
+        {
+            "code": "ps",
+            "alpha3": "PSE",
+            "name": {
+                "fr": "Palestine",
+                "en": "Palestine"
+            },
+            "timezones": {
+                "fr": "Asie/Jérusalem",
+                "en": "Asia/Jerusalem"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+970",
+                "territory": null
+            }
+        },
+        {
+            "code": "om",
+            "alpha3": "OMN",
+            "name": {
+                "fr": "Oman",
+                "en": "Oman"
+            },
+            "timezones": {
+                "fr": "Asie/Mascate",
+                "en": "Asia/Muscat"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+968",
+                "territory": null
+            }
+        },
+        {
+            "code": "bh",
+            "alpha3": "BHR",
+            "name": {
+                "fr": "Bahreïn",
+                "en": "Bahrain"
+            },
+            "timezones": {
+                "fr": "Asie/Bahreïn",
+                "en": "Asia/Bahrain"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+973",
+                "territory": null
+            }
+        },
+        {
+            "code": "ye",
+            "alpha3": "YEM",
+            "name": {
+                "fr": "Yémen",
+                "en": "Yemen"
+            },
+            "timezones": {
+                "fr": "Asie/Sanaa",
+                "en": "Asia/Sanaa"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+967",
+                "territory": null
+            }
+        },
+        {
+            "code": "jo",
+            "alpha3": "JOR",
+            "name": {
+                "fr": "Jordanie",
+                "en": "Jordan"
+            },
+            "timezones": {
+                "fr": "Asie/Amman",
+                "en": "Asia/Amman"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+962",
+                "territory": null
+            }
+        },
+        {
+            "code": "sd",
+            "alpha3": "SDN",
+            "name": {
+                "fr": "Soudan",
+                "en": "Sudan"
+            },
+            "timezones": {
+                "fr": "Afrique/Khartoum",
+                "en": "Africa/Khartoum"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+249",
+                "territory": null
+            }
+        },
+        {
+            "code": "ly",
+            "alpha3": "LBY",
+            "name": {
+                "fr": "Libye",
+                "en": "Libya"
+            },
+            "timezones": {
+                "fr": "Afrique/Tripoli",
+                "en": "Africa/Tripoli"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+218",
+                "territory": null
+            }
+        },
+        {
+            "code": "jp",
+            "alpha3": "JPN",
+            "name": {
+                "fr": "Japon",
+                "en": "Japan"
+            },
+            "timezones": {
+                "fr": "Asie/Tokyo",
+                "en": "Asia/Tokyo"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+81",
+                "territory": null
+            }
+        },
+        {
+            "code": "cn",
+            "alpha3": "CHN",
+            "name": {
+                "fr": "Chine",
+                "en": "China"
+            },
+            "timezones": {
+                "fr": "Asie/Pékin",
+                "en": "Asia/Beijing"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+86",
+                "territory": null
+            }
+        },
+        {
+            "code": "br",
+            "alpha3": "BRA",
+            "name": {
+                "fr": "Brésil",
+                "en": "Brazil"
+            },
+            "timezones": {
+                "fr": "Amérique/São_Paulo",
+                "en": "America/Sao_Paulo"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+55",
+                "territory": null
+            }
+        },
+        {
+            "code": "in",
+            "alpha3": "IND",
+            "name": {
+                "fr": "Inde",
+                "en": "India"
+            },
+            "timezones": {
+                "fr": "Asie/New_Delhi",
+                "en": "Asia/New_Delhi"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+91",
+                "territory": null
+            }
+        },
+        {
+            "code": "ru",
+            "alpha3": "RUS",
+            "name": {
+                "fr": "Russie",
+                "en": "Russia"
+            },
+            "timezones": {
+                "fr": "Europe/Moscou",
+                "en": "Europe/Moscow"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+7",
+                "territory": null
+            }
+        },
+        {
+            "code": "au",
+            "alpha3": "AUS",
+            "name": {
+                "fr": "Australie",
+                "en": "Australia"
+            },
+            "timezones": {
+                "fr": "Australie/Sydney",
+                "en": "Australia/Sydney"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+61",
+                "territory": null
+            }
+        },
+        {
+            "code": "kr",
+            "alpha3": "KOR",
+            "name": {
+                "fr": "Corée du Sud",
+                "en": "South Korea"
+            },
+            "timezones": {
+                "fr": "Asie/Séoul",
+                "en": "Asia/Seoul"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+82",
+                "territory": null
+            }
+        },
+        {
+            "code": "pl",
+            "alpha3": "POL",
+            "name": {
+                "fr": "Pologne",
+                "en": "Poland"
+            },
+            "timezones": {
+                "fr": "Europe/Varsovie",
+                "en": "Europe/Warsaw"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+48",
+                "territory": null
+            }
+        },
+        {
+            "code": "gr",
+            "alpha3": "GRC",
+            "name": {
+                "fr": "Grèce",
+                "en": "Greece"
+            },
+            "timezones": {
+                "fr": "Europe/Athènes",
+                "en": "Europe/Athens"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+30",
+                "territory": null
+            }
+        },
+        {
+            "code": "pt",
+            "alpha3": "PRT",
+            "name": {
+                "fr": "Portugal",
+                "en": "Portugal"
+            },
+            "timezones": {
+                "fr": "Europe/Lisbonne",
+                "en": "Europe/Lisbon"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+351",
+                "territory": null
+            }
+        },
+        {
+            "code": "ro",
+            "alpha3": "ROU",
+            "name": {
+                "fr": "Roumanie",
+                "en": "Romania"
+            },
+            "timezones": {
+                "fr": "Europe/Bucarest",
+                "en": "Europe/Bucharest"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+40",
+                "territory": null
+            }
+        },
+        {
+            "code": "cz",
+            "alpha3": "CZE",
+            "name": {
+                "fr": "République tchèque",
+                "en": "Czech Republic"
+            },
+            "timezones": {
+                "fr": "Europe/Prague",
+                "en": "Europe/Prague"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+420",
+                "territory": null
+            }
+        },
+        {
+            "code": "hu",
+            "alpha3": "HUN",
+            "name": {
+                "fr": "Hongrie",
+                "en": "Hungary"
+            },
+            "timezones": {
+                "fr": "Europe/Budapest",
+                "en": "Europe/Budapest"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+36",
+                "territory": null
+            }
+        },
+        {
+            "code": "at",
+            "alpha3": "AUT",
+            "name": {
+                "fr": "Autriche",
+                "en": "Austria"
+            },
+            "timezones": {
+                "fr": "Europe/Vienne",
+                "en": "Europe/Vienna"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+43",
+                "territory": null
+            }
+        },
+        {
+            "code": "fi",
+            "alpha3": "FIN",
+            "name": {
+                "fr": "Finlande",
+                "en": "Finland"
+            },
+            "timezones": {
+                "fr": "Europe/Helsinki",
+                "en": "Europe/Helsinki"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+358",
+                "territory": null
+            }
+        },
+        {
+            "code": "se",
+            "alpha3": "SWE",
+            "name": {
+                "fr": "Suède",
+                "en": "Sweden"
+            },
+            "timezones": {
+                "fr": "Europe/Stockholm",
+                "en": "Europe/Stockholm"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+46",
+                "territory": null
+            }
+        },
+        {
+            "code": "no",
+            "alpha3": "NOR",
+            "name": {
+                "fr": "Norvège",
+                "en": "Norway"
+            },
+            "timezones": {
+                "fr": "Europe/Oslo",
+                "en": "Europe/Oslo"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+47",
+                "territory": null
+            }
+        },
+        {
+            "code": "dk",
+            "alpha3": "DNK",
+            "name": {
+                "fr": "Danemark",
+                "en": "Denmark"
+            },
+            "timezones": {
+                "fr": "Europe/Copenhague",
+                "en": "Europe/Copenhagen"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+45",
+                "territory": null
+            }
+        },
+        {
+            "code": "sk",
+            "alpha3": "SVK",
+            "name": {
+                "fr": "Slovaquie",
+                "en": "Slovakia"
+            },
+            "timezones": {
+                "fr": "Europe/Bratislava",
+                "en": "Europe/Bratislava"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+421",
+                "territory": null
+            }
+        },
+        {
+            "code": "ee",
+            "alpha3": "EST",
+            "name": {
+                "fr": "Estonie",
+                "en": "Estonia"
+            },
+            "timezones": {
+                "fr": "Europe/Tallinn",
+                "en": "Europe/Tallinn"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+372",
+                "territory": null
+            }
+        },
+        {
+            "code": "lv",
+            "alpha3": "LVA",
+            "name": {
+                "fr": "Lettonie",
+                "en": "Latvia"
+            },
+            "timezones": {
+                "fr": "Europe/Riga",
+                "en": "Europe/Riga"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+371",
+                "territory": null
+            }
+        },
+        {
+            "code": "lt",
+            "alpha3": "LTU",
+            "name": {
+                "fr": "Lituanie",
+                "en": "Lithuania"
+            },
+            "timezones": {
+                "fr": "Europe/Vilnius",
+                "en": "Europe/Vilnius"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+370",
+                "territory": null
+            }
+        },
+        {
+            "code": "bg",
+            "alpha3": "BGR",
+            "name": {
+                "fr": "Bulgarie",
+                "en": "Bulgaria"
+            },
+            "timezones": {
+                "fr": "Europe/Sofia",
+                "en": "Europe/Sofia"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+359",
+                "territory": null
+            }
+        },
+        {
+            "code": "cy",
+            "alpha3": "CYP",
+            "name": {
+                "fr": "Chypre",
+                "en": "Cyprus"
+            },
+            "timezones": {
+                "fr": "Europe/Nicosie",
+                "en": "Europe/Nicosia"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+357",
+                "territory": null
+            }
+        },
+        {
+            "code": "hr",
+            "alpha3": "HRV",
+            "name": {
+                "fr": "Croatie",
+                "en": "Croatia"
+            },
+            "timezones": {
+                "fr": "Europe/Zagreb",
+                "en": "Europe/Zagreb"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+385",
+                "territory": null
+            }
+        },
+        {
+            "code": "si",
+            "alpha3": "SVN",
+            "name": {
+                "fr": "Slovénie",
+                "en": "Slovenia"
+            },
+            "timezones": {
+                "fr": "Europe/Ljubljana",
+                "en": "Europe/Ljubljana"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+386",
+                "territory": null
+            }
+        },
+        {
+            "code": "id",
+            "alpha3": "IDN",
+            "name": {
+                "fr": "Indonésie",
+                "en": "Indonesia"
+            },
+            "timezones": {
+                "fr": "Asie/Jakarta",
+                "en": "Asia/Jakarta"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+62",
+                "territory": null
+            }
+        },
+        {
+            "code": "pk",
+            "alpha3": "PAK",
+            "name": {
+                "fr": "Pakistan",
+                "en": "Pakistan"
+            },
+            "timezones": {
+                "fr": "Asie/Karachi",
+                "en": "Asia/Karachi"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+92",
+                "territory": null
+            }
+        },
+        {
+            "code": "ng",
+            "alpha3": "NGA",
+            "name": {
+                "fr": "Nigeria",
+                "en": "Nigeria"
+            },
+            "timezones": {
+                "fr": "Afrique/Lagos",
+                "en": "Africa/Lagos"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+234",
+                "territory": null
+            }
+        },
+        {
+            "code": "za",
+            "alpha3": "ZAF",
+            "name": {
+                "fr": "Afrique du Sud",
+                "en": "South Africa"
+            },
+            "timezones": {
+                "fr": "Afrique/Johannesburg",
+                "en": "Africa/Johannesburg"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+27",
+                "territory": null
+            }
+        },
+        {
+            "code": "ke",
+            "alpha3": "KEN",
+            "name": {
+                "fr": "Kenya",
+                "en": "Kenya"
+            },
+            "timezones": {
+                "fr": "Afrique/Nairobi",
+                "en": "Africa/Nairobi"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+254",
+                "territory": null
+            }
+        },
+        {
+            "code": "co",
+            "alpha3": "COL",
+            "name": {
+                "fr": "Colombie",
+                "en": "Colombia"
+            },
+            "timezones": {
+                "fr": "Amérique/Bogotá",
+                "en": "America/Bogota"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+57",
+                "territory": null
+            }
+        },
+        {
+            "code": "pe",
+            "alpha3": "PER",
+            "name": {
+                "fr": "Pérou",
+                "en": "Peru"
+            },
+            "timezones": {
+                "fr": "Amérique/Lima",
+                "en": "America/Lima"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+51",
+                "territory": null
+            }
+        },
+        {
+            "code": "ar",
+            "alpha3": "ARG",
+            "name": {
+                "fr": "Argentine",
+                "en": "Argentina"
+            },
+            "timezones": {
+                "fr": "Amérique/Buenos_Aires",
+                "en": "America/Buenos_Aires"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+54",
+                "territory": null
+            }
+        },
+        {
+            "code": "cl",
+            "alpha3": "CHL",
+            "name": {
+                "fr": "Chili",
+                "en": "Chile"
+            },
+            "timezones": {
+                "fr": "Amérique/Santiago",
+                "en": "America/Santiago"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+56",
+                "territory": null
+            }
+        },
+        {
+            "code": "ph",
+            "alpha3": "PHL",
+            "name": {
+                "fr": "Philippines",
+                "en": "Philippines"
+            },
+            "timezones": {
+                "fr": "Asie/Manille",
+                "en": "Asia/Manila"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+63",
+                "territory": null
+            }
+        },
+        {
+            "code": "th",
+            "alpha3": "THA",
+            "name": {
+                "fr": "Thaïlande",
+                "en": "Thailand"
+            },
+            "timezones": {
+                "fr": "Asie/Bangkok",
+                "en": "Asia/Bangkok"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+66",
+                "territory": null
+            }
+        },
+        {
+            "code": "my",
+            "alpha3": "MYS",
+            "name": {
+                "fr": "Malaisie",
+                "en": "Malaysia"
+            },
+            "timezones": {
+                "fr": "Asie/Kuala_Lumpur",
+                "en": "Asia/Kuala_Lumpur"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+60",
+                "territory": null
+            }
+        },
+        {
+            "code": "sg",
+            "alpha3": "SGP",
+            "name": {
+                "fr": "Singapour",
+                "en": "Singapore"
+            },
+            "timezones": {
+                "fr": "Asie/Singapour",
+                "en": "Asia/Singapore"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+65",
+                "territory": null
+            }
+        },
+        {
+            "code": "vn",
+            "alpha3": "VNM",
+            "name": {
+                "fr": "Viêt Nam",
+                "en": "Vietnam"
+            },
+            "timezones": {
+                "fr": "Asie/Hanoï",
+                "en": "Asia/Hanoi"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+84",
+                "territory": null
+            }
+        },
+        {
+            "code": "hk",
+            "alpha3": "HKG",
+            "name": {
+                "fr": "Hong Kong",
+                "en": "Hong Kong"
+            },
+            "timezones": {
+                "fr": "Asie/Hong_Kong",
+                "en": "Asia/Hong_Kong"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+852",
+                "territory": null
+            }
+        },
+        {
+            "code": "tw",
+            "alpha3": "TWN",
+            "name": {
+                "fr": "Taïwan",
+                "en": "Taiwan"
+            },
+            "timezones": {
+                "fr": "Asie/Taipei",
+                "en": "Asia/Taipei"
+            },
+            "phoneNumbering": {
+                "phoneCode": "+886",
+                "territory": null
+            }
+        }
+    ]
+}

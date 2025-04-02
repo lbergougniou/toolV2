@@ -4,7 +4,7 @@ echo    DEMARRAGE DU VERIFICATEUR D'EMAIL
 echo ================================================
 echo.
 
-SET PORT=3000
+SET PORT=3002
 SET DOCUMENT_ROOT=C:\Users\Luc\github\toolV2\public
 
 echo Repertoire courant: %CD%

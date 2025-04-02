@@ -124,7 +124,7 @@ Luc</p>`;
         $("#result").html("<p>Recherche des SDA disponibles...</p>");
 
         $.ajax({
-            url: "/toolV2/src/actions/test_availability.php",
+            url: "../../src/actions/test_availability.php",
             method: "POST",
             data: { quantity, prefix },
             dataType: "json",
@@ -197,7 +197,7 @@ Luc</p>`;
     // Gestionnaire d'événement pour confirmer le câblage
     $("#confirmCable").on("click", function () {
         $.ajax({
-            url: "/toolV2/src/actions/cable_sda.php",
+            url: "../../src/actions/cable_sda.php",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify({
