@@ -79,10 +79,6 @@ try {
             </select>
         </div>
         <div>
-            <label for="quantity">Quantité :</label>
-            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
-        </div>
-        <div>
             <label for="prefix">Indicatif :</label>
             <select id="prefix" name="prefix">
                 <option value="01">01</option>
@@ -92,6 +88,10 @@ try {
                 <option value="05">05</option>
                 <option value="09" selected>09</option>
             </select>
+        </div>
+        <div>
+            <label for="quantity">Quantité :</label>
+            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
         </div>
         <button type="button" id="searchButton">Rechercher les SDA disponibles</button>
     </form>
