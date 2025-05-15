@@ -221,7 +221,7 @@ class LeboncoinScraper implements ScraperInterface
         $url = 'https://www.leboncoin.fr/recherche?category=8&owner_type=pro&sort=relevance';
         
         if ($reference !== null) {
-            if (!preg_match('/^[a-zA-Z0-9\s-]{2,50}$/', $reference)) {
+            if (!preg_match('/^[a-zA-Z0-9\s\.-]{2,50}$/', $reference)) {
                 throw new \InvalidArgumentException("Format de référence invalide");
             }
             $url .= '&text=' . urlencode($reference);

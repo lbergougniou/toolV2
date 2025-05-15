@@ -36,6 +36,7 @@ document
             const data = await response.json();
 
             if (data.success) {
+                
                 if (data.results.length === 0) {
                     resultsDiv.innerHTML = `
                     <div class="alert alert-warning" role="alert">

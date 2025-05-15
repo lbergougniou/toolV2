@@ -17,7 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         $results = $scraper->searchByReference($reference, $prix, $localisation);
-        echo json_encode(['success' => true, 'results' => $results]);
+        
+        // Vérifier si une erreur a été retournée par le scraper
+        if (isset($results['error']) && $results['error'] === true) {
+            echo json_encode(['success' => false, 'message' => $results['message']]);
+        } else {
+            echo json_encode(['success' => true, 'results' => $results]);
+        }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
