@@ -59,8 +59,9 @@ class Logger {
      *
      * @param string $message Message à log
      * @param int $level Niveau de log
+     * @param array $context Contexte supplémentaire
      */
-    private function log($message, $level) {
+    private function log($message, $level, $context = []) {
         // Vérifie si le niveau de log est suffisant
         if ($level < $this->logLevel) {
             return;
@@ -69,7 +70,14 @@ class Logger {
         // Prépare le message de log
         $timestamp = date('Y-m-d H:i:s');
         $levelName = $this->getLevelName($level);
-        $formattedMessage = "[{$timestamp}] [{$levelName}] {$message}" . PHP_EOL;
+        
+        // Formate le contexte de manière plus lisible
+        $contextStr = '';
+        if (!empty($context)) {
+            $contextStr = ' | Context: ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        }
+        
+        $formattedMessage = "[{$timestamp}] [{$levelName}] {$message}{$contextStr}" . PHP_EOL;
 
         // Tente d'écrire le message de log
         try {
@@ -118,45 +126,50 @@ class Logger {
      * Log un message de débogage
      *
      * @param string $message Message à log
+     * @param array $context Contexte supplémentaire
      */
-    public function debug($message) {
-        $this->log($message, self::LEVEL_DEBUG);
+    public function debug($message, $context = []) {
+        $this->log($message, self::LEVEL_DEBUG, $context);
     }
 
     /**
      * Log un message d'information
      *
      * @param string $message Message à log
+     * @param array $context Contexte supplémentaire
      */
-    public function info($message) {
-        $this->log($message, self::LEVEL_INFO);
+    public function info($message, $context = []) {
+        $this->log($message, self::LEVEL_INFO, $context);
     }
 
     /**
      * Log un avertissement
      *
      * @param string $message Message à log
+     * @param array $context Contexte supplémentaire
      */
-    public function warning($message) {
-        $this->log($message, self::LEVEL_WARNING);
+    public function warning($message, $context = []) {
+        $this->log($message, self::LEVEL_WARNING, $context);
     }
 
     /**
      * Log une erreur
      *
      * @param string $message Message à log
+     * @param array $context Contexte supplémentaire
      */
-    public function error($message) {
-        $this->log($message, self::LEVEL_ERROR);
+    public function error($message, $context = []) {
+        $this->log($message, self::LEVEL_ERROR, $context);
     }
 
     /**
      * Log un message critique
      *
      * @param string $message Message à log
+     * @param array $context Contexte supplémentaire
      */
-    public function critical($message) {
-        $this->log($message, self::LEVEL_CRITICAL);
+    public function critical($message, $context = []) {
+        $this->log($message, self::LEVEL_CRITICAL, $context);
     }
 
     /**

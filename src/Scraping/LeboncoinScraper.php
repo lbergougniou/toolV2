@@ -56,8 +56,8 @@ class LeboncoinScraper implements ScraperInterface
     {
         $this->logger = $logger ?? new NullLogger();
         $this->client = HttpClient::create([
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+            'headers' => [ // Voir comment le tenir à jour
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36', 
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language' => 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
                 'Cache-Control' => 'no-cache',
@@ -221,7 +221,7 @@ class LeboncoinScraper implements ScraperInterface
         $url = 'https://www.leboncoin.fr/recherche?category=8&owner_type=pro&sort=relevance';
         
         if ($reference !== null) {
-            if (!preg_match('/^[a-zA-Z0-9\s\.-]{2,50}$/', $reference)) {
+            if (!preg_match('/^[A-Za-z0-9._\-\/\'"+ ]{3,64}$/', $reference)) {
                 throw new \InvalidArgumentException("Format de référence invalide");
             }
             $url .= '&text=' . urlencode($reference);
