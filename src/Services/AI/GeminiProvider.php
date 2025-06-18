@@ -127,7 +127,7 @@ class GeminiProvider implements AIProviderInterface
         $decoded = json_decode($response, true);
         
         if (!isset($decoded['candidates'][0]['content']['parts'][0]['text'])) {
-            throw new \Exception("Format de réponse inattendu");
+            throw new \Exception("Format de réponse inattendu" . $response);
         }
 
         return $decoded['candidates'][0]['content']['parts'][0]['text'];
