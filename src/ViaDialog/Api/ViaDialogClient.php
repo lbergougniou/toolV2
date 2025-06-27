@@ -120,6 +120,30 @@ class ViaDialogClient
         }
     }
 
+    /**
+     * Crée un nouveau service ViaContact
+     */
+    public function createService(array $serviceData): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $this->logUrl('/gw/provisioning/api/via-services', 'POST');
+            
+            $response = $this->httpClient->post('/gw/provisioning/api/via-services', [
+                'json' => $serviceData
+            ]);
+
+            $responseData = json_decode((string) $response->getBody(), true);
+            
+            error_log("Service créé avec succès. ID: " . ($responseData['id'] ?? 'N/A'));
+            
+            return $responseData;
+        } catch (\Exception $e) {
+            error_log("Erreur lors de la création du service: " . $e->getMessage());
+            throw new ApiException("Erreur lors de la création du service: " . $e->getMessage());
+        }
+    }
+
     public function updateServiceWithSda(string $serviceId, array $newSdas): array
     {
         $this->ensureAuthenticated();
@@ -181,6 +205,115 @@ class ViaDialogClient
     {
         if (!$this->accessToken) {
             $this->authenticate();
+        }
+    }
+
+    /**
+     * Récupère la liste des webhooks
+     */
+    public function getWebhookList(int $size = 1000, int $page = 0): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $query = http_build_query(['size' => $size, 'page' => $page]);
+            $url = '/gw/webhook/api/via-webhooks?' . $query;
+            
+            $this->logUrl($url);
+
+            $response = $this->httpClient->get($url);
+            return json_decode((string) $response->getBody(), true);
+        } catch (\Exception $e) {
+            throw new ApiException("Erreur lors de la récupération des webhooks: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Met à jour un webhook avec un nouveau service
+     */
+    public function updateWebhook(array $webhookData): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $this->logUrl('/gw/webhook/api/via-webhooks', 'PUT');
+            
+            $response = $this->httpClient->put('/gw/webhook/api/via-webhooks', [
+                'json' => $webhookData
+            ]);
+
+            $responseData = json_decode((string) $response->getBody(), true);
+            
+            error_log("Webhook mis à jour avec succès. ID: " . ($webhookData['id'] ?? 'N/A'));
+            
+            return $responseData;
+        } catch (\Exception $e) {
+            error_log("Erreur lors de la mise à jour du webhook: " . $e->getMessage());
+            throw new ApiException("Erreur lors de la mise à jour du webhook: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Ajoute un service aux webhooks spécifiés
+     */
+    public function addServiceToWebhooks(int $serviceId, array $webhookIds): array
+    {
+        $this->ensureAuthenticated();
+        $results = [];
+        
+        try {
+            // Récupérer tous les webhooks
+            $webhooks = $this->getWebhookList();
+            
+            foreach ($webhookIds as $webhookId) {
+                // Trouver le webhook correspondant
+                $webhook = null;
+                foreach ($webhooks as $w) {
+                    if ($w['id'] == $webhookId) {
+                        $webhook = $w;
+                        break;
+                    }
+                }
+                
+                if ($webhook) {
+                    // Ajouter le service ID s'il n'existe pas déjà
+                    if (!in_array($serviceId, $webhook['serviceChannelIds'])) {
+                        $webhook['serviceChannelIds'][] = $serviceId;
+                        
+                        // Mettre à jour le webhook
+                        $updateResult = $this->updateWebhook($webhook);
+                        $results[] = [
+                            'webhookId' => $webhookId,
+                            'webhookLabel' => $webhook['label'],
+                            'success' => true,
+                            'serviceAdded' => true
+                        ];
+                        
+                        error_log("Service $serviceId ajouté au webhook {$webhook['label']} (ID: $webhookId)");
+                    } else {
+                        $results[] = [
+                            'webhookId' => $webhookId,
+                            'webhookLabel' => $webhook['label'],
+                            'success' => true,
+                            'serviceAdded' => false,
+                            'message' => 'Service déjà présent dans ce webhook'
+                        ];
+                        
+                        error_log("Service $serviceId déjà présent dans le webhook {$webhook['label']} (ID: $webhookId)");
+                    }
+                } else {
+                    $results[] = [
+                        'webhookId' => $webhookId,
+                        'success' => false,
+                        'error' => "Webhook avec l'ID $webhookId non trouvé"
+                    ];
+                    
+                    error_log("Webhook avec l'ID $webhookId non trouvé");
+                }
+            }
+            
+            return $results;
+        } catch (\Exception $e) {
+            error_log("Erreur lors de l'ajout du service aux webhooks: " . $e->getMessage());
+            throw new ApiException("Erreur lors de l'ajout du service aux webhooks: " . $e->getMessage());
         }
     }
 

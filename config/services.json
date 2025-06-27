@@ -1,0 +1,324 @@
+{
+    "Entrant": {
+        "description": "Paramétrage par défaut pour les services entrant hors transfert",
+        "config": {
+            "libelle": "Scorimmo",
+            "webhook_ids": [
+                38,
+                51
+            ],
+            "name_format": "01e-{{id_PDV}}"
+        },
+        "viad_payload": {
+            "discriminator": "VIACONTACT",
+            "product": "VIACONTACT",
+            "label": "01e-{{id_PDV}}",
+            "enable": true,
+            "sdaAgent": "0974789021",
+            "constantRecording": false,
+            "programmedRecording": false,
+            "onDemandRecording": false,
+            "randomRecording": true,
+            "manualClosed": false,
+            "randomRecordingValue": 80,
+            "viaAdminDTOs": [
+                {
+                    "id": 5000657,
+                    "label": "scorimmo-adm-co"
+                },
+                {
+                    "id": 2000382,
+                    "label": "T00-LTH"
+                },
+                {
+                    "id": 2000378,
+                    "label": "T00-LBE"
+                }
+            ],
+            "weeklyConfigDTO": {
+                "id": 2000241,
+                "label": "Scorimmo_clients"
+            },
+            "pubHolidaysConfigDTO": {
+                "id": 2000080,
+                "label": "Scorimmo-all"
+            },
+            "exceptionalClosuresDTO": [],
+            "status": "OPEN",
+            "directoryDTO": null,
+            "postCodingConfigDTO": null,
+            "viaServiceClusterDTOs": [
+                {
+                    "id": 5000261,
+                    "label": "Scorimmo entrant"
+                }
+            ],
+            "informationMessageDTOs": [],
+            "viaGroupDTOs": [
+                {
+                    "id": 2002117,
+                    "label": "01estw-Scorimmo"
+                }
+            ],
+            "blacklistDTO": null,
+            "company": {
+                "id": 10000085,
+                "name": "scorimmo",
+                "enable": true,
+                "slug": null
+            },
+            "audioMessages": [
+                {
+                    "id": 5004889,
+                    "label": "defaut_accueil",
+                    "category": "WELCOME",
+                    "companyDefault": null,
+                    "enable": true,
+                    "tts": false,
+                    "common": false,
+                    "audioServiceGroups": [],
+                    "legacyId": null,
+                    "ttsParams": null
+                },
+                {
+                    "id": 2001560,
+                    "label": "defaut_close",
+                    "category": "CLOSE",
+                    "companyDefault": null,
+                    "enable": true,
+                    "tts": false,
+                    "common": false,
+                    "audioServiceGroups": [],
+                    "legacyId": null,
+                    "ttsParams": null
+                }
+            ],
+            "defaultGroupDTO": {
+                "id": 2002117,
+                "label": "01estw-Scorimmo"
+            },
+            "skipOpen": false,
+            "ctiAuto": false,
+            "recordingInternal": true,
+            "recordingExternal": true,
+            "liveTranscription": false,
+            "liveExternalTranscription": false,
+            "allowForcedRandomRecording": false,
+            "exportToCompanyFtp": false,
+            "exportFtpWithBrin": false,
+            "pullAssign": true,
+            "scriptId": "Entrant_Prod",
+            "scriptVersion": "4",
+            "recorded": true,
+            "recordFormat": "MP3",
+            "cli": "FORCED",
+            "clinum": "0974789021",
+            "sdaLists": [],
+            "cliTransfer": "FORCED",
+            "clinumTransfer": "0974789021"
+        }
+    },
+    "Transfert Scorimmo": {
+        "description": "Paramétrage par défaut pour les services de transfert",
+        "config": {
+            "libelle": "Scorimmo",
+            "webhook_ids": [
+                38,
+                51
+            ],
+            "name_format": "01t-{{id_PDV}}"
+        },
+        "viad_payload": {
+            "discriminator": "VIACONTACT",
+            "product": "VIACONTACT",
+            "label": "01t-{{id_PDV}}",
+            "enable": true,
+            "sdaAgent": "0974789021",
+            "constantRecording": false,
+            "programmedRecording": false,
+            "onDemandRecording": false,
+            "randomRecording": false,
+            "manualClosed": false,
+            "randomRecordingValue": null,
+            "viaAdminDTOs": [
+                {
+                    "id": 5000657,
+                    "label": "scorimmo-adm-co"
+                },
+                {
+                    "id": 2000382,
+                    "label": "T00-LTH"
+                },
+                {
+                    "id": 2000378,
+                    "label": "T00-LBE"
+                }
+            ],
+            "weeklyConfigDTO": {
+                "id": 2000241,
+                "label": "Scorimmo_clients"
+            },
+            "pubHolidaysConfigDTO": {
+                "id": 2000080,
+                "label": "Scorimmo-all"
+            },
+            "exceptionalClosuresDTO": [],
+            "status": "OPEN",
+            "viaServiceClusterDTOs": [
+                {
+                    "id": 5000261,
+                    "label": "Scorimmo entrant"
+                }
+            ],
+            "informationMessageDTOs": [],
+            "viaGroupDTOs": [
+                {
+                    "id": 2002117,
+                    "label": "01estw-Scorimmo"
+                }
+            ],
+            "company": {
+                "id": 10000085,
+                "name": "scorimmo",
+                "enable": true,
+                "slug": null
+            },
+            "audioMessages": [
+                {
+                    "id": 2001560,
+                    "label": "defaut_close",
+                    "category": "CLOSE",
+                    "companyDefault": null,
+                    "enable": true,
+                    "tts": false,
+                    "common": false,
+                    "audioServiceGroups": [],
+                    "legacyId": null,
+                    "ttsParams": null
+                }
+            ],
+            "defaultGroupDTO": {
+                "id": 2002117,
+                "label": "01estw-Scorimmo"
+            },
+            "skipOpen": false,
+            "ctiAuto": false,
+            "recordingInternal": false,
+            "recordingExternal": false,
+            "liveTranscription": false,
+            "liveExternalTranscription": false,
+            "allowForcedRandomRecording": false,
+            "exportToCompanyFtp": false,
+            "exportFtpWithBrin": false,
+            "pullAssign": true,
+            "scriptId": "Entrant_Prod",
+            "scriptVersion": "4",
+            "recorded": true,
+            "recordFormat": "MP3",
+            "cli": "FORCED",
+            "clinum": "0974789021",
+            "sdaLists": [],
+            "cliTransfer": "FORCED",
+            "clinumTransfer": "0974789021"
+        }
+    },
+    "Sortant": {
+        "description": "Paramétrage par défaut pour les services sortant",
+        "config": {
+            "libelle": "Scorimmo",
+            "webhook_ids": [
+                38
+            ],
+            "name_format": "01s-{{id_PDV}}",
+            "has_sda_field": true
+        },
+        "viad_payload": {
+            "discriminator": "VIACALL",
+            "product": "VIACALL",
+            "label": "01s-{{id_PDV}}",
+            "enable": true,
+            "sdaAgent": "+33974789021",
+            "constantRecording": false,
+            "programmedRecording": false,
+            "onDemandRecording": false,
+            "randomRecording": false,
+            "recordStorageStrategy": "SORT_DEFAULT",
+            "manualClosed": false,
+            "viaAdminDTOs": [
+                {
+                    "id": 5000657,
+                    "label": "scorimmo-adm-co"
+                },
+                {
+                    "id": 2000382,
+                    "label": "T00-LTH"
+                },
+                {
+                    "id": 2000457,
+                    "label": "00AFI"
+                },
+                {
+                    "id": 2000378,
+                    "label": "T00-LBE"
+                }
+            ],
+            "weeklyConfigDTO": {
+                "id": 2000240,
+                "label": "Scorimmo_assistance"
+            },
+            "pubHolidaysConfigDTO": {
+                "id": 2000080,
+                "label": "Scorimmo-all"
+            },
+            "exceptionalClosuresDTO": [],
+            "status": "OPEN",
+            "directoryDTO": null,
+            "postCodingConfigDTO": null,
+            "viaServiceClusterDTOs": [
+                {
+                    "id": 5000262,
+                    "label": "Scorimmo sortant"
+                }
+            ],
+            "informationMessageDTOs": [],
+            "viaGroupDTOs": [
+                {
+                    "id": 2002117,
+                    "label": "01estw-Scorimmo"
+                }
+            ],
+            "blacklistDTO": null,
+            "company": {
+                "id": 10000085,
+                "name": "scorimmo",
+                "enable": true,
+                "slug": null
+            },
+            "audioMessages": [],
+            "defaultGroupDTO": {
+                "id": 2002117,
+                "label": "01estw-Scorimmo"
+            },
+            "defaultPriority": null,
+            "transcribe": false,
+            "skipOpen": false,
+            "recordingInternal": true,
+            "recordingExternal": true,
+            "liveTranscription": false,
+            "liveExternalTranscription": false,
+            "allowForcedRandomRecording": false,
+            "exportToCompanyFtp": false,
+            "exportFtpWithBrin": false,
+            "pullAssign": true,
+            "recorded": true,
+            "recordFormat": "MP3",
+            "cli": "FORCED",
+            "clinum": "{{sda_number}}",
+            "open": null,
+            "listenable": true,
+            "numDisplayed": "{{sda_number}}",
+            "cliTransfer": "FORCED",
+            "clinumTransfer": "0974789021"
+        }
+    }
+}
