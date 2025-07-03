@@ -1,8 +1,9 @@
 {
-    "Entrant": {
+    "Entrant Scorimmo": {
         "description": "Paramétrage par défaut pour les services entrant hors transfert",
         "config": {
             "libelle": "Scorimmo",
+            "engregistrement": true,
             "webhook_ids": [
                 38,
                 51
@@ -122,6 +123,7 @@
         "description": "Paramétrage par défaut pour les services de transfert",
         "config": {
             "libelle": "Scorimmo",
+            "engregistrement": false,
             "webhook_ids": [
                 38,
                 51
@@ -222,10 +224,11 @@
             "clinumTransfer": "0974789021"
         }
     },
-    "Sortant": {
+    "Sortant Scorimmo": {
         "description": "Paramétrage par défaut pour les services sortant",
         "config": {
             "libelle": "Scorimmo",
+            "engregistrement": false,
             "webhook_ids": [
                 38
             ],
