@@ -1,8 +1,8 @@
 /vendor/
+/tests/
 .env
 .idea/
 *.log
-/tests/
 **/venv/
 /.vscode/
 **/static/
