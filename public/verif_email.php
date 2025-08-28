@@ -141,8 +141,24 @@ function handleEmailVerification($email)
             return;
         }
 
-        // 4. Vérification via Mailjet
-        verifyViaMailjet($validator);
+        // 4. Vérification via Mailjet (optionnelle)
+        $useMailjet = isset($_GET['mailjet']) && $_GET['mailjet'] === '1';
+        if ($useMailjet) {
+            verifyViaMailjet($validator);
+        } else {
+            // Si on n'utilise pas Mailjet, envoyer le résultat final basé sur les étapes précédentes
+            $finalResult = [
+                'success' => true,
+                'message' => 'Adresse email valide (vérifications de base complétées)',
+                'details' => [
+                    'basic_validation' => true,
+                    'mailjet_skipped' => true
+                ]
+            ];
+            
+            sendEvent('result', $finalResult);
+            saveCache($_GET['email'], $finalResult);
+        }
     } catch (Exception $e) {
         sendEvent('error', [
             'message' => $e->getMessage()
@@ -206,7 +222,7 @@ function verifyEmailFormat($email)
 }
 
 /**
- * Vérifie les enregistrements MX du domaine
+ * Vérifie les enregistrements MX du domaine de façon robuste
  * 
  * @param string $email L'adresse email à vérifier
  * @return bool Si la vérification a réussi
@@ -215,7 +231,37 @@ function verifyDomainMX($email)
 {
     try {
         // Extraire le domaine
-        list(, $domain) = explode('@', $email);
+        $parts = explode('@', $email);
+        if (count($parts) !== 2) {
+            sendEvent('step', [
+                'message' => 'Vérification des serveurs mail...',
+                'success' => false
+            ]);
+            
+            sendEvent('error', [
+                'message' => 'Format d\'email invalide',
+                'errorMessage' => "Impossible d'extraire le domaine de l'email"
+            ]);
+            
+            return false;
+        }
+        
+        $domain = trim($parts[1]);
+        
+        // Vérifier que le domaine n'est pas vide
+        if (empty($domain)) {
+            sendEvent('step', [
+                'message' => 'Vérification des serveurs mail...',
+                'success' => false
+            ]);
+            
+            sendEvent('error', [
+                'message' => 'Domaine vide',
+                'errorMessage' => "Le domaine ne peut pas être vide"
+            ]);
+            
+            return false;
+        }
         
         // Notifier le début de la vérification
         sendEvent('step', [
@@ -223,17 +269,60 @@ function verifyDomainMX($email)
             'success' => null
         ]);
 
-        // Vérifier les enregistrements MX
-        if (!getmxrr($domain, $mxhosts)) {
-            // Notifier l'échec de la vérification
+        // Variables pour stocker les résultats
+        $mxhosts = [];
+        $mxweights = [];
+        $hasMX = false;
+        $hasA = false;
+        
+        // 1. Vérifier les enregistrements MX
+        $hasMX = getmxrr($domain, $mxhosts, $mxweights);
+        
+        // 2. Si pas de MX, vérifier l'enregistrement A (fallback RFC)
+        if (!$hasMX) {
+            // Selon la RFC 5321, si pas de MX, on doit essayer l'enregistrement A
+            $aRecord = gethostbyname($domain);
+            if ($aRecord !== $domain && filter_var($aRecord, FILTER_VALIDATE_IP)) {
+                $hasA = true;
+                $mxhosts[] = $domain; // Le domaine lui-même comme serveur mail
+                
+                sendEvent('step', [
+                    'success' => true,
+                    'message' => 'Aucun enregistrement MX trouvé, mais enregistrement A disponible: ' . $aRecord
+                ]);
+            }
+        }
+        
+        // 3. Vérifier aussi les enregistrements AAAA (IPv6) si nécessaire
+        if (!$hasMX && !$hasA) {
+            // Utiliser dns_get_record pour une vérification plus complète
+            $records = @dns_get_record($domain, DNS_A + DNS_AAAA + DNS_MX);
+            
+            if ($records !== false) {
+                foreach ($records as $record) {
+                    if ($record['type'] === 'MX') {
+                        $hasMX = true;
+                        $mxhosts[] = $record['target'];
+                        break;
+                    } elseif ($record['type'] === 'A' || $record['type'] === 'AAAA') {
+                        $hasA = true;
+                        $mxhosts[] = $domain;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Si aucun enregistrement trouvé
+        if (!$hasMX && !$hasA) {
             sendEvent('step', [
                 'message' => 'Vérification des serveurs mail...',
                 'success' => false
             ]);
             
             sendEvent('error', [
-                'message' => 'Domaine invalide: '. $domain,
-                'errorMessage' => "Aucun serveur mail configuré pour ce domaine"
+                'message' => 'Domaine invalide: ' . $domain,
+                'errorMessage' => "Aucun serveur mail configuré pour ce domaine (pas d'enregistrements MX, A ou AAAA)"
             ]);
             
             return false;
@@ -245,13 +334,53 @@ function verifyDomainMX($email)
             'success' => true
         ]);
         
-        // Notifier les serveurs MX trouvés
-        sendEvent('step', [
-            'success' => true,
-            'message' => 'Serveurs mail trouvés: '. implode(', ', $mxhosts)
-        ]);
+        // Trier les serveurs MX par priorité si on a les poids
+        if ($hasMX && !empty($mxweights)) {
+            array_multisort($mxweights, SORT_ASC, $mxhosts);
+            
+            // Créer un message détaillé avec les priorités
+            $mxDetails = [];
+            for ($i = 0; $i < count($mxhosts); $i++) {
+                $priority = isset($mxweights[$i]) ? $mxweights[$i] : 'N/A';
+                $mxDetails[] = $mxhosts[$i] . ' (priorité: ' . $priority . ')';
+            }
+            
+            sendEvent('step', [
+                'success' => true,
+                'message' => 'Serveurs mail trouvés: ' . implode(', ', $mxDetails)
+            ]);
+        } else {
+            // Message simple pour les enregistrements A
+            sendEvent('step', [
+                'success' => true,
+                'message' => 'Serveurs mail trouvés: ' . implode(', ', $mxhosts)
+            ]);
+        }
+
+        // Validation supplémentaire: vérifier que les serveurs MX sont accessibles
+        $validMxCount = 0;
+        foreach ($mxhosts as $mxhost) {
+            // Test rapide de résolution DNS du serveur MX
+            $mxIp = gethostbyname($mxhost);
+            if ($mxIp !== $mxhost && filter_var($mxIp, FILTER_VALIDATE_IP)) {
+                $validMxCount++;
+            }
+        }
+        
+        if ($validMxCount === 0) {
+            sendEvent('step', [
+                'success' => false,
+                'message' => 'Attention: Les serveurs mail trouvés ne semblent pas accessibles'
+            ]);
+        } else {
+            sendEvent('step', [
+                'success' => true,
+                'message' => $validMxCount . ' serveur(s) mail accessible(s) sur ' . count($mxhosts)
+            ]);
+        }
 
         return true;
+        
     } catch (Exception $e) {
         // Gérer les erreurs
         sendEvent('step', [
@@ -260,8 +389,8 @@ function verifyDomainMX($email)
         ]);
         
         sendEvent('error', [
-            'message' => 'Vérification des serveurs mail...',
-            'errorMessage' => "Erreur lors de la vérification des serveurs mail: ". $e->getMessage()
+            'message' => 'Erreur lors de la vérification des serveurs mail',
+            'errorMessage' => $e->getMessage()
         ]);
         
         return false;
@@ -592,6 +721,18 @@ if (isset($_GET['stream'])) {
                                 <div class="col-md-12">
                                     <label for="email" class="form-label">Adresse Email</label>
                                     <input type="text" class="form-control" id="email" name="email" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="use-mailjet" checked>
+                                    <label class="form-check-label" for="use-mailjet">
+                                        Utiliser la vérification avancée Mailjet
+                                    </label>
+                                    <div class="form-text">
+                                        La vérification Mailjet fournit des résultats plus précis mais prend plus de temps.
+                                    </div>
                                 </div>
                             </div>
                             
