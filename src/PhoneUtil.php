@@ -7,14 +7,18 @@ use libphonenumber\PhoneNumberFormat;
 use libphonenumber\NumberParseException;
 
 /**
- * Classe PhoneUtil - Utilitaire pour la validation et la détection des numéros téléphoniques
- * 
- * Cette classe permet de :
- * - Détecter le pays d'origine d'un numéro de téléphone
- * - Valider les numéros de téléphone selon différents formats
- * - Gérer spécifiquement les numéros français et des DOM-TOM
- * 
- * Version utilisant un fichier JSON pour obtenir les informations des pays
+ * Classe PhoneUtil - Utilitaire de validation et normalisation des numéros téléphoniques
+ *
+ * Fonctionnalités principales :
+ * - Détection du pays d'origine d'un numéro de téléphone
+ * - Validation des numéros selon les standards internationaux
+ * - Normalisation intelligente : format local pour France métropolitaine, international pour DOM-TOM et autres pays
+ * - Gestion spécifique des territoires français (DOM-TOM) avec détection automatique
+ *
+ * Utilise libphonenumber pour la validation et un fichier JSON pour les données géographiques
+ *
+ * @package App
+ * @version 2.0
  */
 class PhoneUtil
 {
@@ -44,135 +48,248 @@ class PhoneUtil
     private string $jsonFilePath;
 
     /**
-     * Constructeur - Initialise l'instance de PhoneNumberUtil et charge les données JSON
-     * 
-     * @param string $jsonFilePath Chemin vers le fichier JSON (optionnel)
+     * Initialise l'utilitaire de numéros de téléphone
+     *
+     * @param string|null $jsonFilePath Chemin personnalisé vers le JSON des pays (optionnel)
+     * @throws \RuntimeException Si le fichier JSON est invalide ou introuvable
      */
     public function __construct(string $jsonFilePath = null)
     {
         $this->phoneUtil = PhoneNumberUtil::getInstance();
-        
-        // Définir le chemin par défaut du fichier JSON s'il n'est pas fourni
         $this->jsonFilePath = $jsonFilePath ?? __DIR__ . '/../public/data/countries_data.json';
-        
-        // Charger les données des pays depuis le fichier JSON
         $this->loadCountriesData();
     }
     
     /**
-     * Charge les données des pays depuis le fichier JSON
-     * 
-     * @return void
-     * @throws \RuntimeException Si le fichier est introuvable ou invalide
+     * Charge et valide les données des pays depuis le fichier JSON
+     *
+     * @throws \RuntimeException Si le fichier est introuvable, illisible ou invalide
      */
     private function loadCountriesData(): void
     {
         if (!file_exists($this->jsonFilePath)) {
-            throw new \RuntimeException("Le fichier JSON des pays n'existe pas: {$this->jsonFilePath}");
+            throw new \RuntimeException("Fichier JSON introuvable : {$this->jsonFilePath}");
         }
-        
+
         $jsonContent = file_get_contents($this->jsonFilePath);
         if ($jsonContent === false) {
-            throw new \RuntimeException("Impossible de lire le fichier JSON: {$this->jsonFilePath}");
+            throw new \RuntimeException("Impossible de lire le fichier : {$this->jsonFilePath}");
         }
-        
+
         $data = json_decode($jsonContent, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \RuntimeException("Erreur de décodage JSON: " . json_last_error_msg());
+            throw new \RuntimeException("JSON invalide : " . json_last_error_msg());
         }
-        
+
         if (!isset($data['countries']) || !is_array($data['countries'])) {
-            throw new \RuntimeException("Format JSON invalide: la clé 'countries' est manquante ou n'est pas un tableau");
+            throw new \RuntimeException("Structure JSON invalide : clé 'countries' manquante");
         }
-        
+
         $this->countriesData = $data['countries'];
-        $this->log("Données des pays chargées", count($this->countriesData) . " pays trouvés");
+        $this->log("Données chargées", count($this->countriesData) . " pays");
     }
     
     /**
-     * Recherche un pays dans les données JSON par son code pays
-     * 
-     * @param string $countryCode Code ISO du pays (2 lettres)
-     * @return array|null Données du pays ou null si non trouvé
+     * Recherche un pays par son code ISO
+     *
+     * @param string $countryCode Code ISO à 2 lettres (ex: 'FR', 'RE')
+     * @return array|null Données du pays ou null si introuvable
      */
     private function findCountryByCode(string $countryCode): ?array
     {
         $code = strtolower($countryCode);
-        
+
         foreach ($this->countriesData as $country) {
             if (strtolower($country['code']) === $code) {
                 return $country;
             }
         }
-        
+
         return null;
     }
-    
+
     /**
-     * Recherche un pays dans les données JSON par son préfixe téléphonique et sous-préfixe
-     * 
-     * @param string $phoneNumber Numéro de téléphone au format international (+XX...)
-     * @return array|null Données du pays ou null si non trouvé
+     * Recherche un pays par son préfixe téléphonique (avec gestion des sous-préfixes)
+     * Utilisé notamment pour différencier les territoires partageant le même préfixe (ex: Réunion/Mayotte avec +262)
+     *
+     * @param string $phoneNumber Numéro au format international (+XXXXXXXXXXXX)
+     * @return array|null Données du pays ou null si introuvable
      */
     private function findCountryByPhonePrefix(string $phoneNumber): ?array
     {
         if (!str_starts_with($phoneNumber, '+')) {
             return null;
         }
-        
-        // Pour les territoires avec des sous-préfixes (comme +262 pour Réunion/Mayotte)
+
+        $numericNumber = substr($phoneNumber, 1); // Retirer le '+'
+
         foreach ($this->countriesData as $country) {
-            if (isset($country['phoneNumbering']['phoneCode']) && 
-                str_starts_with($phoneNumber, $country['phoneNumbering']['phoneCode'])) {
-                
-                // Si des sous-préfixes sont définis, vérifier aussi les sous-préfixes
-                if (isset($country['phoneNumbering']['subPrefixes']) && 
-                    !empty($country['phoneNumbering']['subPrefixes'])) {
-                    
-                    $numericNumber = substr($phoneNumber, 1); // Enlever le +
-                    
-                    foreach ($country['phoneNumbering']['subPrefixes'] as $subPrefix) {
-                        if (str_starts_with($numericNumber, $subPrefix)) {
-                            return $country;
-                        }
+            $phoneCode = $country['phoneNumbering']['phoneCode'] ?? null;
+
+            if (!$phoneCode || !str_starts_with($phoneNumber, $phoneCode)) {
+                continue;
+            }
+
+            // Vérification des sous-préfixes (pour DOM-TOM partageant le même code pays)
+            if (!empty($country['phoneNumbering']['subPrefixes'])) {
+                foreach ($country['phoneNumbering']['subPrefixes'] as $subPrefix) {
+                    if (str_starts_with($numericNumber, $subPrefix)) {
+                        return $country;
                     }
-                } else {
-                    // Si pas de sous-préfixes, retourner le pays correspondant au préfixe principal
-                    return $country;
+                }
+            } else {
+                return $country;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Convertit un numéro nettoyé en format international
+     *
+     * @param string $cleanNumber Numéro nettoyé (uniquement chiffres et '+')
+     * @return string Numéro au format international (+XXXXXXXXXXXX)
+     */
+    private function convertToInternational(string $cleanNumber): string
+    {
+        // Format local français (0XXXXXXXXX)
+        if (preg_match('/^0([1-9])([0-9]{8})$/', $cleanNumber, $matches)) {
+            $domTomPrefix = $this->detectDomTomPrefix($cleanNumber);
+
+            if ($domTomPrefix !== null) {
+                $this->log("Conversion DOM-TOM", $domTomPrefix);
+                return $domTomPrefix . $matches[1] . $matches[2];
+            }
+
+            $this->log("Conversion France", "+33");
+            return '+33' . $matches[1] . $matches[2];
+        }
+
+        // Format 00XX (00336XXXXXXXX → +336XXXXXXXX)
+        if (preg_match('/^00([0-9]{2,3})([0-9]+)$/', $cleanNumber, $matches)) {
+            return '+' . $matches[1] . $matches[2];
+        }
+
+        // Déjà au format international ou fallback
+        if (!str_starts_with($cleanNumber, '+')) {
+            return '+33' . ltrim($cleanNumber, '0');
+        }
+
+        return $cleanNumber;
+    }
+
+    /**
+     * Calcule le numéro normalisé selon les règles métier
+     *
+     * Règles de normalisation :
+     * - France métropolitaine (code 'fr') : format local sans indicatif (0XXXXXXXXX)
+     * - DOM-TOM et autres pays : format international avec indicatif (+XXXXXXXXXXXX)
+     *
+     * @param string $originalNumber Numéro saisi par l'utilisateur
+     * @param string $countryCode Code ISO du pays détecté
+     * @param string $internationalNumber Numéro au format international brut
+     * @return string Numéro normalisé
+     */
+    private function calculateNormalizedNumber(string $originalNumber, string $countryCode, string $internationalNumber): string
+    {
+        // France métropolitaine uniquement (pas les DOM-TOM)
+        if (strtolower($countryCode) === 'fr') {
+            if (str_starts_with($internationalNumber, '+33')) {
+                $nationalNumber = substr($internationalNumber, 3);
+                if (strlen($nationalNumber) === 9) {
+                    return '0' . $nationalNumber;
+                }
+            }
+
+            // Si déjà au format local valide
+            $cleanOriginal = preg_replace('/[^0-9]/', '', $originalNumber);
+            if (preg_match('/^0[1-9][0-9]{8}$/', $cleanOriginal)) {
+                return $cleanOriginal;
+            }
+        }
+
+        // DOM-TOM et autres pays : format international
+        return $internationalNumber;
+    }
+
+    /**
+     * Détecte si un numéro au format local français appartient à un DOM-TOM
+     *
+     * Analyse les numéros commençant par 06 ou 07 pour identifier s'ils correspondent
+     * à des territoires d'outre-mer (La Réunion, Guadeloupe, Martinique, etc.)
+     *
+     * @param string $localNumber Numéro au format local (0XXXXXXXXX)
+     * @return string|null Indicatif international du DOM-TOM (+262, +590, etc.) ou null si France métropolitaine
+     */
+    private function detectDomTomPrefix(string $localNumber): ?string
+    {
+        // Seuls les 06 et 07 peuvent être des DOM-TOM
+        if (!preg_match('/^0([67])(\d{8})$/', $localNumber, $matches)) {
+            return null;
+        }
+
+        $fullNumber = $matches[1] . $matches[2]; // Ex: "693498839"
+
+        // Parcourir les territoires français avec sous-préfixes
+        foreach ($this->countriesData as $country) {
+            if (($country['phoneNumbering']['territory'] ?? null) !== 'fr') {
+                continue;
+            }
+
+            if (empty($country['phoneNumbering']['subPrefixes'])) {
+                continue;
+            }
+
+            $phoneCode = $country['phoneNumbering']['phoneCode'];
+            $codeWithoutPlus = ltrim($phoneCode, '+');
+
+            foreach ($country['phoneNumbering']['subPrefixes'] as $subPrefix) {
+                // Extraire la partie locale du sous-préfixe (après le code pays)
+                // Ex: "262693" → "693" (après avoir retiré "262")
+                if (str_starts_with($subPrefix, $codeWithoutPlus)) {
+                    $localPart = substr($subPrefix, strlen($codeWithoutPlus));
+
+                    if (str_starts_with($fullNumber, $localPart)) {
+                        $this->log("DOM-TOM détecté", [
+                            'country' => $country['name']['fr'],
+                            'phoneCode' => $phoneCode,
+                            'subPrefix' => $subPrefix
+                        ]);
+                        return $phoneCode;
+                    }
                 }
             }
         }
-        
-        return null;
+
+        return null; // France métropolitaine
     }
     
     /**
      * Active ou désactive le mode débogage
-     * 
-     * @param bool $debug État du mode débogage
-     * @return void
+     *
+     * @param bool $debug True pour activer le débogage
      */
     public function setDebug(bool $debug): void
     {
         $this->debug = $debug;
     }
-    
+
     /**
-     * Récupère les logs générés pendant le traitement
-     * 
-     * @return array Liste des messages de log
+     * Récupère les logs de débogage collectés
+     *
+     * @return array Tableau de logs avec timestamp, message et données
      */
     public function getLogs(): array
     {
         return $this->logs;
     }
-    
+
     /**
-     * Ajoute un message au journal de débogage
-     * 
-     * @param string $message Message à journaliser
-     * @param mixed $data Données additionnelles (optionnel)
-     * @return void
+     * Enregistre un message de débogage (si le mode debug est activé)
+     *
+     * @param string $message Description de l'étape
+     * @param mixed $data Données contextuelles (optionnel)
      */
     private function log(string $message, $data = null): void
     {
@@ -186,42 +303,37 @@ class PhoneUtil
     }
     
     /**
-     * Méthode principale : détecte le pays d'un numéro de téléphone
-     * 
-     * @param string $phoneNumber Numéro de téléphone à analyser
-     * @return array Informations sur le pays du numéro
+     * Détecte le pays d'origine d'un numéro de téléphone et retourne ses informations
+     *
+     * Accepte tous formats : local (06...), international (+33...), ou avec 00
+     * Gère automatiquement la détection des DOM-TOM même en format local
+     *
+     * @param string $phoneNumber Numéro à analyser (n'importe quel format)
+     * @return array Tableau associatif contenant :
+     *               - success: bool (toujours true)
+     *               - isValid: bool (true si numéro valide)
+     *               - countryCode: string (code ISO du pays, ex: 'fr', 're')
+     *               - phoneCode: string (indicatif international, ex: '+33', '+262')
+     *               - country: string (nom du pays en français)
+     *               - isFrench: bool (true si France ou territoire français)
+     *               - normalizedNumber: string (numéro au format normalisé)
+     *               - territory: string|null ('fr' pour les DOM-TOM, null sinon)
+     *               - region: string|null (région géographique)
+     *               - message: string (si erreur)
+     *               - logs: array (si mode debug activé)
      */
     public function detectPhoneCountry(string $phoneNumber): array
     {
-        // Réinitialiser les logs
         $this->logs = [];
-        
-        // Enregistrer le numéro original
         $this->log("Numéro original", $phoneNumber);
-        
-        // Nettoyage du numéro (suppression de tous les caractères non-numériques sauf +)
+
+        // Nettoyage : ne garder que chiffres et '+'
         $cleanNumber = preg_replace('/[^0-9+]/', '', $phoneNumber);
         $this->log("Numéro nettoyé", $cleanNumber);
-        
-        // Prétraitement pour convertir les numéros français au format international
-        // Format: 06XXXXXXXX -> +336XXXXXXXX
-        if (preg_match('/^0([1-9])([0-9]{8})$/', $cleanNumber, $matches)) {
-            $cleanNumber = '+33' . $matches[1] . $matches[2];
-            $this->log("Conversion du format français en international", $cleanNumber);
-        }
-        
-        // Conversion des formats avec 00 en préfixe international (+)
-        // Format: 0033XXXXXXX -> +33XXXXXXX
-        if (preg_match('/^00([0-9]{2,3})([0-9]+)$/', $cleanNumber, $matches)) {
-            $cleanNumber = '+' . $matches[1] . $matches[2];
-            $this->log("Conversion du format 00XX en +XX", $cleanNumber);
-        }
-        
-        // Si le numéro ne commence pas par +, tentative d'analyse avec le préfixe français
-        if (!str_starts_with($cleanNumber, '+')) {
-            $cleanNumber = '+33' . ltrim($cleanNumber, '0');
-            $this->log("Ajout du préfixe français par défaut", $cleanNumber);
-        }
+
+        // Conversion en format international
+        $cleanNumber = $this->convertToInternational($cleanNumber);
+        $this->log("Format international", $cleanNumber);
         
         try {
             // Tentative de parsing avec le contexte français (FR)
@@ -254,10 +366,13 @@ class PhoneUtil
                 
                 if ($countryByPrefix !== null) {
                     $this->log("Pays trouvé par préfixe", $countryByPrefix);
-                    
+
                     // Déterminer si c'est un territoire français (DOM-TOM)
                     $isFrenchTerritory = ($countryByPrefix['phoneNumbering']['territory'] === 'fr');
-                    
+
+                    // Calculer le numéro normalisé
+                    $normalizedNumber = $this->calculateNormalizedNumber($phoneNumber, $countryByPrefix['code'], $internationalRaw);
+
                     return [
                         'success' => true,
                         'isValid' => true,
@@ -266,20 +381,24 @@ class PhoneUtil
                         'isFrench' => ($countryByPrefix['code'] === 'fr' || $isFrenchTerritory),
                         'region' => isset($countryByPrefix['region']) ? $countryByPrefix['region'] : null,
                         'country' => $countryByPrefix['name']['fr'] ?? null,
-                        'territory' => $countryByPrefix['phoneNumbering']['territory'] ?? null
+                        'territory' => $countryByPrefix['phoneNumbering']['territory'] ?? null,
+                        'normalizedNumber' => $normalizedNumber
                     ];
                 }
                 
                 // Recherche dans notre fichier JSON par le code pays
                 $countryData = $this->findCountryByCode($countryCode);
-                
+
                 if ($countryData !== null) {
                     $this->log("Pays trouvé dans le JSON par code", $countryData);
-                    
+
                     // Déterminer si c'est un territoire français (DOM-TOM)
-                    $isFrenchTerritory = isset($countryData['phoneNumbering']['territory']) && 
+                    $isFrenchTerritory = isset($countryData['phoneNumbering']['territory']) &&
                                          $countryData['phoneNumbering']['territory'] === 'fr';
-                    
+
+                    // Calculer le numéro normalisé
+                    $normalizedNumber = $this->calculateNormalizedNumber($phoneNumber, $countryData['code'], $internationalRaw);
+
                     return [
                         'success' => true,
                         'isValid' => true,
@@ -288,11 +407,14 @@ class PhoneUtil
                         'isFrench' => ($countryData['code'] === 'fr' || $isFrenchTerritory),
                         'region' => isset($countryData['region']) ? $countryData['region'] : null,
                         'country' => $countryData['name']['fr'] ?? null,
-                        'territory' => $countryData['phoneNumbering']['territory'] ?? null
+                        'territory' => $countryData['phoneNumbering']['territory'] ?? null,
+                        'normalizedNumber' => $normalizedNumber
                     ];
                 }
-                
+
                 // Si le pays n'est pas dans notre JSON, fournir les infos de base
+                $normalizedNumber = $this->calculateNormalizedNumber($phoneNumber, $countryCode, $internationalRaw);
+
                 return [
                     'success' => true,
                     'isValid' => true,
@@ -300,7 +422,8 @@ class PhoneUtil
                     'phoneCode' => '+' . $parsedNumber->getCountryCode(),
                     'country' => null,
                     'region' => null,
-                    'territory' => null
+                    'territory' => null,
+                    'normalizedNumber' => $normalizedNumber
                 ];
             }
         } catch (NumberParseException $e) {
@@ -319,21 +442,36 @@ class PhoneUtil
     }
 
     /**
-     * Méthode utilitaire - Vérifie si un numéro est valide
-     * 
+     * Normalise un numéro de téléphone selon les règles métier :
+     * - France métropolitaine : format local (0XXXXXXXXX)
+     * - DOM-TOM et autres pays : format international (+XXXXXXXXXXXX)
+     *
+     * @param string $phoneNumber Numéro à normaliser
+     * @return string|null Numéro normalisé ou null si invalide
+     */
+    public function normalizePhoneNumber(string $phoneNumber): ?string
+    {
+        $result = $this->detectPhoneCountry($phoneNumber);
+
+        return ($result['isValid'] ?? false) ? ($result['normalizedNumber'] ?? null) : null;
+    }
+
+    /**
+     * Vérifie si un numéro de téléphone est valide
+     *
      * @param string $phoneNumber Numéro à vérifier
-     * @return bool True si le numéro est valide, false sinon
+     * @return bool True si valide, false sinon
      */
     public function isValidPhoneNumber(string $phoneNumber): bool
     {
         $result = $this->detectPhoneCountry($phoneNumber);
-        return isset($result['isValid']) && $result['isValid'] === true;
+        return $result['isValid'] ?? false;
     }
 
     /**
-     * Récupère toutes les données pays depuis le fichier JSON
-     * 
-     * @return array Tableau des pays
+     * Récupère toutes les données des pays depuis le JSON
+     *
+     * @return array Tableau des pays avec leurs informations
      */
     public function getAllCountries(): array
     {
@@ -341,22 +479,21 @@ class PhoneUtil
     }
 
     /**
-     * Récupère les pays groupés par région
-     * 
-     * @return array Tableau des pays groupés par région
+     * Récupère les pays groupés et triés par région géographique
+     *
+     * @return array Tableau associatif [région => [pays...]]
      */
     public function getCountriesByRegion(): array
     {
         $regions = [];
-        
+
         foreach ($this->countriesData as $country) {
-            $region = isset($country['region']) ? $country['region'] : 'Autre';
-            
+            $region = $country['region'] ?? 'Autre';
+
             if (!isset($regions[$region])) {
                 $regions[$region] = [];
             }
-            
-            // Ajouter le pays à sa région
+
             $regions[$region][] = [
                 'code' => $country['code'],
                 'name' => $country['name']['fr'] ?? $country['name']['en'] ?? $country['code'],
@@ -365,45 +502,13 @@ class PhoneUtil
                 'territory' => $country['phoneNumbering']['territory'] ?? null
             ];
         }
-        
-        // Trier les régions par nom
+
         ksort($regions);
-        
-        // Trier les pays dans chaque région par nom
+
         foreach ($regions as &$countries) {
-            usort($countries, function ($a, $b) {
-                return $a['name'] <=> $b['name'];
-            });
+            usort($countries, fn($a, $b) => $a['name'] <=> $b['name']);
         }
-        
+
         return $regions;
-    }
-    
-    /**
-     * Formate un numéro de téléphone selon le format du pays
-     *
-     * @param string $phoneNumber Le numéro à formater
-     * @param bool $national Utiliser le format national (true) ou international (false)
-     * @return string|null Le numéro formaté ou null si impossible
-     */
-    public function formatPhoneNumber(string $phoneNumber, bool $national = false): ?string
-    {
-        $countryInfo = $this->detectPhoneCountry($phoneNumber);
-        
-        if (!isset($countryInfo['isValid']) || !$countryInfo['isValid']) {
-            return null;
-        }
-        
-        try {
-            $parsedNumber = $this->phoneUtil->parse($phoneNumber, 'FR');
-            
-            if ($national) {
-                return $this->phoneUtil->format($parsedNumber, PhoneNumberFormat::NATIONAL);
-            } else {
-                return $this->phoneUtil->format($parsedNumber, PhoneNumberFormat::INTERNATIONAL);
-            }
-        } catch (NumberParseException $e) {
-            return null;
-        }
     }
 }

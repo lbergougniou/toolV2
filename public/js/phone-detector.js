@@ -80,7 +80,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 lastPhoneData = data;
                 if (data.success) {
                     if (data.isValid) {
-                        // Numéro valide : afficher le drapeau
+                        // Numéro valide : remplacer par le numéro normalisé et afficher le drapeau
+                        if (data.normalizedNumber) {
+                            phoneInput.value = data.normalizedNumber;
+                        }
                         displayCountryInfo(data.countryCode, data);
                     } else {
                         // Numéro invalide : afficher l'icône d'invalidité

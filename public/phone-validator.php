@@ -1,4 +1,35 @@
 <?php
+/**
+ * Validateur de numéros de téléphone avec détection de pays
+ *
+ * NOTE IMPORTANTE - SÉCURITÉ POUR LA PRODUCTION :
+ * ================================================
+ * Ce code est actuellement prévu pour un usage local uniquement.
+ * Avant la mise en production, les points suivants DOIVENT être implémentés :
+ *
+ * 1. VALIDATION & SANITIZATION
+ *    - Valider et nettoyer $_POST['phone_number'] avant utilisation
+ *    - Limiter la longueur du numéro (ex: max 20 caractères)
+ *    - Vérifier le format (accepter uniquement chiffres, +, espaces, tirets)
+ *
+ * 2. PROTECTION CSRF
+ *    - Ajouter un token CSRF pour les requêtes POST
+ *    - Vérifier le token avant traitement
+ *
+ * 3. RATE LIMITING
+ *    - Implémenter une limitation de requêtes par IP
+ *    - Prévenir les abus et attaques par force brute
+ *
+ * 4. HEADERS DE SÉCURITÉ
+ *    - Content-Security-Policy
+ *    - X-Frame-Options
+ *    - X-Content-Type-Options
+ *
+ * 5. GESTION DES ERREURS
+ *    - Ne pas exposer les erreurs PHP en production
+ *    - Logger les erreurs côté serveur
+ */
+
 // Charger l'autoloader de Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -7,9 +38,10 @@ use App\PhoneUtil;
 
 // Traitement des requêtes AJAX
 if (isset($_POST['phone_number'])) {
+    // TODO : Ajouter validation + sanitization ici
     $phoneUtil = new PhoneUtil();
     $result = $phoneUtil->detectPhoneCountry($_POST['phone_number']);
-    
+
     header('Content-Type: application/json');
     echo json_encode($result);
     exit;
@@ -37,7 +69,7 @@ if (isset($_POST['phone_number'])) {
             align-items: center;
             justify-content: center;
         }
-        
+
         /* Style du drapeau */
         .country-flag {
             width: 100%;
@@ -45,32 +77,33 @@ if (isset($_POST['phone_number'])) {
             border-radius: 2px;
             object-fit: cover;
         }
-        
+
         /* Style de l'icône d'invalidité */
         .invalid-icon {
             color: #dc3545;
             font-size: 14px;
             opacity: 0.5;
         }
-        
+
         /* Style du code pays de fallback */
         .country-code {
             font-size: 12px;
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         /* Styles pour l'input group */
         .input-group-text {
             background-color: #fff;
             padding: 1px;
         }
-        
+
+        /* NOTE: padding à 0 peut poser problème en production, à ajuster si besoin */
         .form-control {
             border-left: 0;
             padding: 0px;
         }
-        
+
         /* Style de la carte */
         .card {
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);

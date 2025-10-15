@@ -34,7 +34,8 @@
             "phoneNumbering": {
                 "phoneCode": "+262",
                 "subPrefixes": [
-                    "262262"
+                    "262692",
+                    "262693"
                 ],
                 "territory": "fr"
             }
@@ -72,8 +73,7 @@
             "phoneNumbering": {
                 "phoneCode": "+590",
                 "subPrefixes": [
-                    "590690",
-                    "590691"
+                    "590690"
                 ],
                 "territory": "fr"
             }
@@ -130,9 +130,6 @@
             },
             "phoneNumbering": {
                 "phoneCode": "+590",
-                "subPrefixes": [
-                    "590590"
-                ],
                 "territory": "fr"
             }
         },
@@ -149,9 +146,6 @@
             },
             "phoneNumbering": {
                 "phoneCode": "+590",
-                "subPrefixes": [
-                    "590690"
-                ],
                 "territory": "fr"
             }
         },
@@ -236,18 +230,18 @@
             }
         },
         {
-            "code": "SA",
+            "code": "sa",
             "alpha3": "SAU",
             "name": {
                 "fr": "Arabie Saoudite",
-                "en": "Saudi arabia"
+                "en": "Saudi Arabia"
             },
             "timezones": {
                 "fr": "Asie/Riyad",
                 "en": "Asia/Riyadh"
             },
             "phoneNumbering": {
-                "phoneCode": "+996",
+                "phoneCode": "+966",
                 "territory": null
             }
         },
@@ -648,22 +642,6 @@
             },
             "phoneNumbering": {
                 "phoneCode": "+967",
-                "territory": null
-            }
-        },
-        {
-            "code": "jo",
-            "alpha3": "JOR",
-            "name": {
-                "fr": "Jordanie",
-                "en": "Jordan"
-            },
-            "timezones": {
-                "fr": "Asie/Amman",
-                "en": "Asia/Amman"
-            },
-            "phoneNumbering": {
-                "phoneCode": "+962",
                 "territory": null
             }
         },
