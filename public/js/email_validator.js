@@ -80,8 +80,11 @@ $(document).ready(function () {
         $resultsDiv.html('<ul class="list-group"></ul>');
         $submitButton.prop("disabled", true);
 
+        // Vérifier si la case Mailjet est cochée
+        const useMailjet = $("#use-mailjet").is(":checked");
+
         // Configuration du processus de vérification
-        const totalSteps = 4; // Format, MX, SMTP, Mailjet
+        const totalSteps = useMailjet ? 4 : 3; // Format, MX, SMTP, (Mailjet optionnel)
         const completedSteps = {
             format: false,
             mx: false,
@@ -93,7 +96,7 @@ $(document).ready(function () {
         updateGlobalProgress(0, totalSteps);
 
         // Établir la connexion SSE
-        let evtSource = createEventSource(email);
+        let evtSource = createEventSource(email, useMailjet);
         let reconnectAttempts = 0;
 
         // Configuration des gestionnaires d'événements
@@ -108,9 +111,10 @@ $(document).ready(function () {
     /**
      * Crée une connexion EventSource vers le backend
      */
-    function createEventSource(email) {
+    function createEventSource(email, useMailjet = false) {
+        const mailjetParam = useMailjet ? '&mailjet=1' : '&mailjet=0';
         return new EventSource(
-            `verif_email.php?stream=1&email=${encodeURIComponent(email)}`
+            `verif_email.php?stream=1&email=${encodeURIComponent(email)}${mailjetParam}`
         );
     }
 
