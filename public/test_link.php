@@ -13,6 +13,8 @@ function getRedirectUrl($url) {
     $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
     $error = curl_error($ch);
     curl_close($ch);
+
+    $finalUrl =strtok($finalUrl, '?');
     
     return $error ? ['error' => $error] : ['url' => $finalUrl];
 }
