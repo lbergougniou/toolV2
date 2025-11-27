@@ -21,9 +21,9 @@ class DatabaseConnection
     // Configuration DB via tunnel SSH
     const DB_HOST = '127.0.0.1';
     const DB_PORT = 13306;
-    const DB_NAME = 'scorimmo';
-    const DB_USER = 'scorimmo';
-    const DB_PASSWORD = '5YPgzVgWEa9syuqx';
+    const DB_NAME = 'scorimmopp';
+    const DB_USER = 'scorimmopp';
+    const DB_PASSWORD = 'W8XNbPgTfXrHDhrK';
 
     /**
      * Constructeur privé (Singleton)

@@ -128,7 +128,7 @@ class EmailTestSender
             WHERE created_at > CURRENT_DATE() - INTERVAL ? DAY
                 AND substatus = 'lead_created'
                 AND $whereClause
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC
             LIMIT ?
         ";
 
@@ -245,7 +245,7 @@ class EmailTestSender
         }
 
         // Calcul du nombre de succès
-        $successCount = count(array_filter($results, function($r) {
+        $successCount = count(array_filter($results, function ($r) {
             return $r['success'];
         }));
 
