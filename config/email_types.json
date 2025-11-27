@@ -1,0 +1,100 @@
+{
+  "avendrealouer": {
+    "label": "A Vendre A Louer",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "avendrealouer.fr", "operator": "LIKE"},
+      {"field": "html", "pattern": "avendrealouer.fr", "operator": "LIKE"},
+      {"field": "html", "pattern": "AVendreALouer.fr", "operator": "LIKE"},
+      {"field": "plain", "pattern": "avendrealouer.fr", "operator": "LIKE"}
+    ]
+  },
+  "superimmo-pro": {
+    "label": "SuperImmo Pro",
+    "search_methods": [
+      {"field": "html", "pattern": "https://www.superimmo.com/", "operator": "LIKE"},
+      {"field": "html", "pattern": "/logo/web-logo-superimmo.png", "operator": "LIKE"}
+    ]
+  },
+  "super-neuf": {
+    "label": "SuperNeuf",
+    "search_methods": [
+      {"field": "html", "pattern": "https://www.superneuf.com/", "operator": "LIKE"},
+      {"field": "html", "pattern": "/logos/superneuf.png", "operator": "LIKE"}
+    ]
+  },
+  "traja": {
+    "label": "Traja",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "traja-immobilier.com", "operator": "LIKE"},
+      {"field": "html", "pattern": "traja-immobilier.com", "operator": "LIKE"}
+    ]
+  },
+  "bien-ici": {
+    "label": "Bien Ici",
+    "search_methods": [
+      {"field": "html", "pattern": "bienici.com", "operator": "LIKE"}
+    ]
+  },
+  "bien-ici-contact": {
+    "label": "Bien Ici Contact",
+    "search_methods": [
+      {"field": "plain", "pattern": "Objet mail : Contact", "operator": "LIKE"}
+    ]
+  },
+  "le-bon-coin": {
+    "label": "Le Bon Coin",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "leboncoin.fr", "operator": "LIKE"},
+      {"field": "html", "pattern": "vous a contacté sur leboncoin", "operator": "LIKE"}
+    ]
+  },
+  "se-loger": {
+    "label": "SeLoger",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "myselogerpro.com", "operator": "LIKE"},
+      {"field": "html", "pattern": "logo-sl/SL_200px.png", "operator": "LIKE"}
+    ]
+  },
+  "groupe-3f": {
+    "label": "Groupe 3F",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "accession.groupe3f.fr", "operator": "LIKE"},
+      {"field": "sender_subject", "pattern": "groupe3f \"Contact\"", "operator": "LIKE"},
+      {"field": "sender_email", "pattern": "bounces-272569150-2992563379@", "operator": "LIKE"}
+    ]
+  },
+  "se-loger-neuf": {
+    "label": "SeLoger Neuf",
+    "search_methods": [
+      {"field": "html", "pattern": "selogerneuf.com", "operator": "LIKE"}
+    ]
+  },
+  "laforet": {
+    "label": "La Forêt",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "laforet.com", "operator": "LIKE"},
+      {"field": "html", "pattern": "laforet.com", "operator": "LIKE"}
+    ]
+  },
+  "ouestfrance": {
+    "label": "Ouest France",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "ouestfrance-immo.com", "operator": "LIKE"},
+      {"field": "html", "pattern": "ouestfrance-immo.com", "operator": "LIKE"}
+    ]
+  },
+  "paruvendu": {
+    "label": "Paru Vendu",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "paruvendu.fr", "operator": "LIKE"},
+      {"field": "html", "pattern": "paruvendu.fr", "operator": "LIKE"}
+    ]
+  },
+  "lefigaro": {
+    "label": "Le Figaro",
+    "search_methods": [
+      {"field": "sender_email", "pattern": "proprietesprivees.lefigaro.fr", "operator": "LIKE"},
+      {"field": "html", "pattern": "proprietesprivees.lefigaro.fr", "operator": "LIKE"}
+    ]
+  }
+}
