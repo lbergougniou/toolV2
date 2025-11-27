@@ -9,6 +9,16 @@
       }
     ]
   },
+  "cession-pme": {
+    "label": "Cession PME",
+    "search_methods": [
+      {
+        "field": "html",
+        "pattern": "CessionPME",
+        "operator": "LIKE"
+      }
+    ]
+  },
   "avendrealouer": {
     "label": "A Vendre A Louer",
     "search_methods": [
