@@ -109,6 +109,8 @@ class ViaDialogClient
         $this->httpClient = new Client([
             'base_uri' => self::BASE_URI,
             'handler' => $stack,
+            'timeout' => 60,    // Timeout de 60 secondes pour les requêtes
+            'connect_timeout' => 10,  // Timeout de connexion de 10 secondes
             'verify' => false,  // Désactivation de la vérification SSL (environnement de dev)
             'curl' => [
                 CURLOPT_SSL_VERIFYHOST => false,
@@ -548,11 +550,58 @@ class ViaDialogClient
     }
 
     /**
+     * Met à jour un service existant
+     *
+     * Cette méthode permet de mettre à jour la configuration complète d'un service.
+     * Elle accepte soit un objet stdClass soit un tableau associatif.
+     *
+     * @param object|array $serviceData Configuration complète du service à mettre à jour
+     *                                  Doit inclure au minimum l'ID du service
+     *
+     * @return array Réponse de l'API contenant les détails du service mis à jour
+     * @throws ApiException Si la mise à jour échoue
+     *
+     * @example
+     * ```php
+     * $service = $client->getService('12345');
+     * $service->maxUser = 10;
+     * $result = $client->updateService($service);
+     * ```
+     */
+    public function updateService($serviceData): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $this->logUrl('/gw/provisioning/api/via-services', 'PUT');
+
+            // Conversion en array si nécessaire
+            if (is_object($serviceData)) {
+                $serviceData = json_decode(json_encode($serviceData), true);
+            }
+
+            // Mise à jour du service via requête PUT
+            $response = $this->httpClient->put('/gw/provisioning/api/via-services', [
+                'json' => $serviceData
+            ]);
+
+            $responseData = json_decode((string) $response->getBody(), true);
+
+            // Log de confirmation de mise à jour
+            error_log("Service mis à jour avec succès. ID: " . ($responseData['id'] ?? 'N/A'));
+
+            return $responseData;
+        } catch (\Exception $e) {
+            error_log("Erreur lors de la mise à jour du service: " . $e->getMessage());
+            throw new ApiException("Erreur lors de la mise à jour du service: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Log les URLs des requêtes API pour le monitoring et le debugging
-     * 
+     *
      * @param string $url URL relative de la requête
      * @param string $method Méthode HTTP utilisée (défaut: GET)
-     * 
+     *
      * @return void
      */
     private function logUrl(string $url, string $method = 'GET'): void
