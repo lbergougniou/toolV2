@@ -608,4 +608,48 @@ class ViaDialogClient
     {
         error_log("[ViaDialogClient] {$method} " . self::BASE_URI . $url);
     }
+
+    /**
+     * Récupère les détails d'un groupe ViaDialog par son ID
+     *
+     * @param int $groupId Identifiant du groupe
+     * @return array Données brutes du groupe depuis l'API
+     * @throws ApiException En cas d'erreur API
+     */
+    public function getGroup(int $groupId): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $url = "/gw/provisioning/api/via-groups/{$groupId}";
+            $this->logUrl($url);
+
+            $response = $this->httpClient->get($url);
+            return json_decode((string) $response->getBody(), true);
+        } catch (\Exception $e) {
+            throw new ApiException("Erreur lors de la récupération du groupe: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Récupère la liste des groupes actifs
+     *
+     * @param int $size Nombre maximum de résultats (défaut: 2000)
+     * @param int $page Numéro de page pour la pagination (défaut: 0)
+     * @return array Liste des groupes
+     * @throws ApiException En cas d'erreur API
+     */
+    public function getActiveGroups(int $size = 2000, int $page = 0): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $url = '/gw/provisioning/api/via-groups/stats?sort=label%2Casc&size=' . $size . '&page=' . $page . '&filter=' . urlencode('eq,enable,true');
+
+            $this->logUrl($url);
+
+            $response = $this->httpClient->get($url);
+            return json_decode((string) $response->getBody(), true);
+        } catch (\Exception $e) {
+            throw new ApiException("Erreur lors de la récupération des groupes: " . $e->getMessage());
+        }
+    }
 }
