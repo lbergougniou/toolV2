@@ -2,6 +2,7 @@
 
 namespace Database;
 
+use Dotenv\Dotenv;
 use PDO;
 use PDOException;
 use Exception;
@@ -18,26 +19,49 @@ class DatabaseConnection
     private static $instance = null;
     private $pdo;
 
-    // Configuration DB via tunnel SSH
-    const DB_HOST = '127.0.0.1';
-    const DB_PORT = 13306;
-    const DB_NAME = 'scorimmo';
-    const DB_USER = 'scorimmo';
-    const DB_PASSWORD = '5YPgzVgWEa9syuqx';
+    // Configuration DB via tunnel SSH (chargée depuis .env)
+    private string $dbHost;
+    private int $dbPort;
+    private string $dbName;
+    private string $dbUser;
+    private string $dbPassword;
 
-    // Configuration SSH
-    const SSH_HOST = 'scorimmo.gw.oxv.fr';
-    const SSH_USER = 'scorimmo';
-    const SSH_KEY = '~/.ssh/MacBookPro-Luc';
-    const SSH_REMOTE_HOST = 'scorimmo-prod8.mysql';
-    const SSH_REMOTE_PORT = 3306;
+    // Configuration SSH (chargée depuis .env)
+    private string $sshHost;
+    private string $sshUser;
+    private string $sshKey;
+    private string $sshRemoteHost;
+    private int $sshRemotePort;
 
     /**
      * Constructeur privé (Singleton)
      */
     private function __construct()
     {
+        $this->loadConfiguration();
         $this->connectToPDO();
+    }
+
+    /**
+     * Charge la configuration depuis les variables d'environnement
+     */
+    private function loadConfiguration(): void
+    {
+        // Charger le fichier .env
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../..');
+        $dotenv->safeLoad();
+
+        $this->dbHost = $_ENV['SCORIMMO_DB_HOST'] ?? '127.0.0.1';
+        $this->dbPort = (int) ($_ENV['SCORIMMO_DB_PORT'] ?? 13306);
+        $this->dbName = $_ENV['SCORIMMO_DB_NAME'] ?? 'scorimmo';
+        $this->dbUser = $_ENV['SCORIMMO_DB_USER'] ?? 'scorimmo';
+        $this->dbPassword = $_ENV['SCORIMMO_DB_PASSWORD'] ?? '';
+
+        $this->sshHost = $_ENV['SSH_HOST'] ?? '';
+        $this->sshUser = $_ENV['SSH_USER'] ?? '';
+        $this->sshKey = $_ENV['SSH_KEY'] ?? '';
+        $this->sshRemoteHost = $_ENV['SSH_REMOTE_HOST'] ?? '';
+        $this->sshRemotePort = (int) ($_ENV['SSH_REMOTE_PORT'] ?? 3306);
     }
 
     /**
@@ -60,7 +84,7 @@ class DatabaseConnection
      */
     private function isTunnelActive(): bool
     {
-        $connection = @fsockopen('127.0.0.1', self::DB_PORT, $errno, $errstr, 1);
+        $connection = @fsockopen('127.0.0.1', $this->dbPort, $errno, $errstr, 1);
         if ($connection) {
             fclose($connection);
             return true;
@@ -76,15 +100,15 @@ class DatabaseConnection
      */
     private function startTunnel(): bool
     {
-        $sshKey = str_replace('~', $_SERVER['HOME'] ?? getenv('HOME'), self::SSH_KEY);
+        $sshKey = str_replace('~', $_SERVER['HOME'] ?? getenv('HOME'), $this->sshKey);
 
         $command = sprintf(
             'ssh -f -N -L %d:%s:%d %s@%s -i %s -o StrictHostKeyChecking=no -o BatchMode=yes -o ConnectTimeout=10 2>&1',
-            self::DB_PORT,
-            self::SSH_REMOTE_HOST,
-            self::SSH_REMOTE_PORT,
-            self::SSH_USER,
-            self::SSH_HOST,
+            $this->dbPort,
+            $this->sshRemoteHost,
+            $this->sshRemotePort,
+            $this->sshUser,
+            $this->sshHost,
             escapeshellarg($sshKey)
         );
 
@@ -107,7 +131,7 @@ class DatabaseConnection
             }
         }
 
-        throw new Exception("Le tunnel SSH a été lancé mais n'est pas accessible sur le port " . self::DB_PORT);
+        throw new Exception("Le tunnel SSH a été lancé mais n'est pas accessible sur le port " . $this->dbPort);
     }
 
     /**
@@ -125,9 +149,9 @@ class DatabaseConnection
         try {
             $dsn = sprintf(
                 'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-                self::DB_HOST,
-                self::DB_PORT,
-                self::DB_NAME
+                $this->dbHost,
+                $this->dbPort,
+                $this->dbName
             );
 
             $options = [
@@ -138,11 +162,11 @@ class DatabaseConnection
                 PDO::ATTR_TIMEOUT => 5
             ];
 
-            $this->pdo = new PDO($dsn, self::DB_USER, self::DB_PASSWORD, $options);
+            $this->pdo = new PDO($dsn, $this->dbUser, $this->dbPassword, $options);
         } catch (PDOException $e) {
             throw new Exception(
                 'Erreur de connexion à la base de données via le tunnel SSH.\n' .
-                    'Vérifiez que le tunnel est bien actif sur le port ' . self::DB_PORT . '.\n' .
+                    'Vérifiez que le tunnel est bien actif sur le port ' . $this->dbPort . '.\n' .
                     'Erreur PDO: ' . $e->getMessage()
             );
         }
