@@ -631,6 +631,34 @@ class ViaDialogClient
     }
 
     /**
+     * Récupère la liste des SDA avec toutes les données brutes (non mappées)
+     *
+     * Cette méthode retourne les données brutes de l'API sans transformation,
+     * permettant d'accéder à toutes les informations incluant viaServiceRefDTO.
+     *
+     * @param array $criteria Critères de filtrage (optionnel)
+     * @param int $size Nombre maximum de résultats (défaut: 2000)
+     * @param int $page Numéro de page pour la pagination (défaut: 0)
+     * @return array Données brutes de l'API
+     * @throws ApiException En cas d'erreur API
+     */
+    public function getSdaListRaw(array $criteria = [], int $size = 2000, int $page = 0): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $query = $this->buildQueryString($criteria, $size, $page);
+            $url = '/gw/provisioning/api/sdas?' . $query;
+
+            $this->logUrl($url);
+
+            $response = $this->httpClient->get($url);
+            return json_decode((string) $response->getBody(), true);
+        } catch (\Exception $e) {
+            throw new ApiException("Erreur lors de la récupération des SDA: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Récupère la liste des groupes actifs
      *
      * @param int $size Nombre maximum de résultats (défaut: 2000)
