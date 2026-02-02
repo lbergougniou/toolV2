@@ -118,6 +118,6 @@ try {
 </div>
 
 
-<script src="js/sda.js"></script>
+<script src="js/Viad_Cablage_SDA.js"></script>
 </body>
 </html>

@@ -151,6 +151,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/inject-payloads.js"></script>
+    <script src="js/Viad_WebhookError_InjectPayload.js"></script>
 </body>
 </html>
