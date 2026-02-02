@@ -18,7 +18,7 @@ require_once __DIR__ . '/../src/Email/EmailTestSender.php';
 require_once __DIR__ . '/../src/Logger/Logger.php';
 
 use Database\DatabaseConnection;
-use Email\EmailTestSender;
+use App\Email\EmailTestSender;
 use App\Logger\Logger;
 
 // Initialisation du logger
