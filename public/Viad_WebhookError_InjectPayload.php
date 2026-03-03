@@ -1,3 +1,9 @@
+<?php
+require_once __DIR__ . '/../vendor/autoload.php';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
+$viaflowAuth = $_ENV['VIAFLOW_AUTH'] ?? '';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -42,7 +48,7 @@
                                 <input type="text" 
                                        class="form-control" 
                                        id="authHeader" 
-                                       value="votre-token-ici" 
+                                       value="<?= htmlspecialchars($viaflowAuth) ?>"
                                        placeholder="Votre token d'authentification">
                             </div>
                             
