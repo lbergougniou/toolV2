@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0a8ad61cc4e9fc6eb5b6ac687836d2e7",
+    "content-hash": "1bfcd0715cc4e0ef4e45e48456bd722a",
     "packages": [
         {
             "name": "giggsey/libphonenumber-for-php",
@@ -1482,6 +1482,85 @@
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
             "time": "2019-03-08T08:55:37+00:00"
+        },
+        {
+            "name": "scorimmo/scorimmo-php",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ScorimmoSAS/scorimmo-php.git",
+                "reference": "5f25221ce917b8d14a257e73caa4d44bdd9edfa1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/5f25221ce917b8d14a257e73caa4d44bdd9edfa1",
+                "reference": "5f25221ce917b8d14a257e73caa4d44bdd9edfa1",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "illuminate/http": "^10.0|^11.0|^12.0",
+                "illuminate/support": "^10.0|^11.0|^12.0",
+                "phpunit/phpunit": "^11.0",
+                "symfony/config": "^6.4|^7.0",
+                "symfony/dependency-injection": "^6.4|^7.0",
+                "symfony/http-kernel": "^6.4|^7.0"
+            },
+            "suggest": {
+                "illuminate/support": "Pour l'intégration Laravel (ServiceProvider, Facade, events)",
+                "symfony/dependency-injection": "Pour l'intégration Symfony (Bundle, autowiring)"
+            },
+            "default-branch": true,
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Scorimmo\\Bridge\\Laravel\\ScorimmoServiceProvider"
+                    ],
+                    "aliases": {
+                        "Scorimmo": "Scorimmo\\Bridge\\Laravel\\ScorimmoFacade"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Scorimmo\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Scorimmo\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit tests --testdox"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "SDK officiel Scorimmo pour PHP — client API, webhook, intégrations Laravel & Symfony",
+            "keywords": [
+                "crm",
+                "immobilier",
+                "laravel",
+                "leads",
+                "real-estate",
+                "scorimmo",
+                "sdk",
+                "symfony",
+                "webhook"
+            ],
+            "support": {
+                "source": "https://github.com/ScorimmoSAS/scorimmo-php/tree/main",
+                "issues": "https://github.com/ScorimmoSAS/scorimmo-php/issues"
+            },
+            "time": "2026-03-11T12:35:06+00:00"
         },
         {
             "name": "symfony/browser-kit",
@@ -3590,7 +3669,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "scorimmo/scorimmo-php": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
