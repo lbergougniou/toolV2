@@ -4,6 +4,8 @@
 .idea/
 *.log
 **/venv/
+**/.venv/
+**/node_modules/
 /.vscode/
 **/static/
 /Python/Signature_workspace/*.json

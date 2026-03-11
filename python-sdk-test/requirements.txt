@@ -1,0 +1,2 @@
+scorimmo[flask] @ git+https://github.com/ScorimmoSAS/scorimmo-python.git
+python-dotenv>=1.0.0
