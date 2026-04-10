@@ -659,6 +659,27 @@ class ViaDialogClient
     }
 
     /**
+     * Met à jour les agents d'un groupe (remplace la liste complète)
+     *
+     * @param int $groupId Identifiant du groupe
+     * @param array $agents Liste des agents avec viaAgentRefDTO et priority
+     * @return array Réponse de l'API
+     * @throws ApiException En cas d'erreur API
+     */
+    public function updateGroupAgents(int $groupId, array $agents): array
+    {
+        $this->ensureAuthenticated();
+        try {
+            $url = "/gw/provisioning/api/via-groups/{$groupId}/agents";
+            $this->logUrl($url, 'PUT');
+            $response = $this->httpClient->put($url, ['json' => $agents]);
+            return json_decode((string) $response->getBody(), true) ?? [];
+        } catch (\Exception $e) {
+            throw new ApiException("Erreur lors de la mise à jour des agents du groupe: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Récupère la liste des groupes actifs
      *
      * @param int $size Nombre maximum de résultats (défaut: 2000)
