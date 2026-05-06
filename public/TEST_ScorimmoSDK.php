@@ -25,6 +25,7 @@ $result = null;
 $error  = null;
 
 set_time_limit(0);
+ini_set('max_execution_time', '0');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? $email);
