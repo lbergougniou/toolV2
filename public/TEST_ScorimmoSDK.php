@@ -62,11 +62,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // ── Leads ─────────────────────────────────────────────────────────────
             case 'recent_leads':
-                $hours  = max(1, min(720, (int) ($_POST['hours'] ?? 24)));
-                $leads  = $client->leads->since(new DateTime("-{$hours} hours"));
+                $hours    = max(1, min(720, (int) ($_POST['hours'] ?? 24)));
+                $maxPages = max(1, min(100, (int) ($_POST['max_pages'] ?? 5)));
+                $logs     = [];
+                $leads    = $client->leads->since(
+                    date: new DateTime("-{$hours} hours"),
+                    maxPages: $maxPages,
+                    onProgress: function (int $page, int $count, int $total, array $meta) use (&$logs, $maxPages): void {
+                        $nextPage = $meta['next_page'] ?? null;
+                        $logs[] = sprintf(
+                            'Page %d/%d — %d lead(s) récupéré(s) | total cumulé : %d | next_page : %s',
+                            $page,
+                            $maxPages,
+                            $count,
+                            $total,
+                            $nextPage !== null ? "#{$nextPage}" : 'aucune (fin)',
+                        );
+                    },
+                );
                 $result = [
                     'action' => "Leads des dernières {$hours}h",
                     'count'  => count($leads),
+                    'logs'   => $logs,
                     'data'   => $leads,
                 ];
                 break;
@@ -243,8 +260,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Leads récents -->
     <div id="field-recent_leads" class="action-fields">
-        <label>Depuis combien d'heures</label>
-        <input type="number" name="hours" value="<?= (int) ($_POST['hours'] ?? 24) ?>" min="1" max="720" placeholder="24">
+        <div class="row">
+            <div>
+                <label>Depuis combien d'heures</label>
+                <input type="number" name="hours" value="<?= (int) ($_POST['hours'] ?? 24) ?>" min="1" max="720" placeholder="24">
+            </div>
+            <div>
+                <label>Max pages (100 leads/page)</label>
+                <input type="number" name="max_pages" value="<?= (int) ($_POST['max_pages'] ?? 5) ?>" min="1" max="100" placeholder="5">
+            </div>
+        </div>
     </div>
 
     <!-- Liste des leads -->
@@ -305,6 +330,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php foreach ($result['meta'] as $k => $v): ?>
                     <strong><?= htmlspecialchars($k) ?></strong>: <?= htmlspecialchars((string) $v) ?> &nbsp;&nbsp;
                 <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($result['logs'])): ?>
+            <div style="margin-bottom:8px">
+                <strong style="color:#ffd54f;font-size:12px">Pagination log</strong>
+                <pre style="background:#1a1500;border-color:#5c4a00;color:#ffd54f;max-height:200px"><?php
+                    foreach ($result['logs'] as $line) {
+                        echo htmlspecialchars($line) . "\n";
+                    }
+                ?></pre>
             </div>
         <?php endif; ?>
 
