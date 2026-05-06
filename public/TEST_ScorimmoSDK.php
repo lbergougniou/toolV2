@@ -24,6 +24,8 @@ $baseUrl  = $_ENV['SCORIMMO_URL'] ?? 'https://pro.scorimmo.com';
 $result = null;
 $error  = null;
 
+set_time_limit(0);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? $email);
     $password = trim($_POST['password'] ?? $password);
