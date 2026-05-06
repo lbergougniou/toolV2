@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         switch ($action) {
 
-            // ── Token ────────────────────────────────────────────────────────────
+            // ── Auth ──────────────────────────────────────────────────────────────
             case 'token':
                 $token        = $client->getToken();
                 $refreshToken = $client->getRefreshToken();
@@ -60,14 +60,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = ['action' => 'Validation du token', 'data' => $info];
                 break;
 
+            case 'refresh_token':
+                $refreshToken = trim($_POST['refresh_token_value'] ?? '');
+                if (!$refreshToken) {
+                    throw new \InvalidArgumentException('Refresh token requis');
+                }
+                $data   = $client->refreshAccessToken($refreshToken);
+                $result = ['action' => 'Refresh token', 'data' => $data];
+                break;
+
+            case 'revoke_token':
+                $refreshToken = trim($_POST['revoke_token_value'] ?? '');
+                $data   = $client->revokeToken($refreshToken ?: null);
+                $result = ['action' => 'Révocation du token', 'data' => $data];
+                break;
+
             // ── Leads ─────────────────────────────────────────────────────────────
             case 'recent_leads':
                 $hours    = max(1, min(720, (int) ($_POST['hours'] ?? 24)));
                 $maxPages = max(1, min(100, (int) ($_POST['max_pages'] ?? 5)));
+                $field    = in_array($_POST['date_field'] ?? '', ['updated_at']) ? 'updated_at' : 'created_at';
+                $storeId  = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
                 $logs     = [];
                 $leads    = $client->leads->since(
                     date: new DateTime("-{$hours} hours"),
+                    field: $field,
                     maxPages: $maxPages,
+                    storeId: $storeId,
                     onProgress: function (int $page, int $count, int $total, array $meta) use (&$logs, $maxPages): void {
                         $nextPage = $meta['next_page'] ?? null;
                         $logs[] = sprintf(
@@ -81,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     },
                 );
                 $result = [
-                    'action' => "Leads des dernières {$hours}h",
+                    'action' => "Leads des dernières {$hours}h (champ: {$field})" . ($storeId ? " [store #{$storeId}]" : ''),
                     'count'  => count($leads),
                     'logs'   => $logs,
                     'data'   => $leads,
@@ -89,9 +108,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'list_leads':
-                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
-                $page   = max(1, (int) ($_POST['page'] ?? 1));
-                $leads  = $client->leads->list(['limit' => $limit, 'page' => $page, 'sort' => 'created_at:desc']);
+                $limit   = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page    = max(1, (int) ($_POST['page'] ?? 1));
+                $storeId = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $status  = trim($_POST['status_filter'] ?? '');
+                $query   = array_filter([
+                    'limit'    => $limit,
+                    'page'     => $page,
+                    'sort'     => 'created_at:desc',
+                    'store_id' => $storeId,
+                    'status'   => $status ?: null,
+                ], fn($v) => $v !== null && $v !== '');
+                $leads  = $client->leads->list($query);
                 $result = [
                     'action' => "Leads (page {$page}, limit {$limit})",
                     'meta'   => $leads['meta'] ?? null,
@@ -100,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'get_lead':
-                $leadId  = (int) ($_POST['lead_id'] ?? 0);
+                $leadId  = (int) ($_POST['resource_id'] ?? 0);
                 $include = array_filter(explode(',', $_POST['include'] ?? ''));
                 if (!$leadId) {
                     throw new \InvalidArgumentException('ID du lead requis');
@@ -110,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
 
             case 'update_lead':
-                $leadId  = (int) ($_POST['lead_id'] ?? 0);
+                $leadId  = (int) ($_POST['resource_id'] ?? 0);
                 $payload = json_decode($_POST['update_payload'] ?? '{}', true) ?? [];
                 if (!$leadId) {
                     throw new \InvalidArgumentException('ID du lead requis');
@@ -122,51 +150,225 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result  = ['action' => "Update lead #{$leadId}", 'data' => $updated];
                 break;
 
-            // ── Référentiels ──────────────────────────────────────────────────────
-            case 'list_stores':
-                $stores = $client->stores->list(['limit' => 100]);
+            // ── Customers ─────────────────────────────────────────────────────────
+            case 'list_customers':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page   = max(1, (int) ($_POST['page'] ?? 1));
+                $email_ = trim($_POST['customer_email'] ?? '');
+                $phone  = trim($_POST['customer_phone'] ?? '');
+                $query  = array_filter([
+                    'limit' => $limit,
+                    'page'  => $page,
+                    'sort'  => 'created_at:desc',
+                    'email' => $email_ ?: null,
+                    'phone' => $phone ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->customers->list($query);
                 $result = [
-                    'action' => 'Points de vente accessibles',
-                    'meta'   => $stores['meta'] ?? null,
-                    'data'   => $stores['data'] ?? $stores,
-                ];
-                break;
-
-            case 'list_users':
-                $limit = max(1, min(100, (int) ($_POST['limit'] ?? 20)));
-                $users = $client->users->list(['limit' => $limit]);
-                $result = [
-                    'action' => "Utilisateurs (limit {$limit})",
-                    'meta'   => $users['meta'] ?? null,
-                    'data'   => $users['data'] ?? $users,
-                ];
-                break;
-
-            case 'list_status':
-                $statuses = $client->status->list(['limit' => 100]);
-                $result   = [
-                    'action' => 'Statuts disponibles',
-                    'meta'   => $statuses['meta'] ?? null,
-                    'data'   => $statuses['data'] ?? $statuses,
-                ];
-                break;
-
-            // ── Rendez-vous / Commentaires / Rappels ─────────────────────────────
-            case 'list_appointments':
-                $limit = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
-                $data  = $client->appointments->list(['limit' => $limit, 'sort' => 'created_at:desc']);
-                $result = [
-                    'action' => "Rendez-vous (limit {$limit})",
+                    'action' => "Clients (page {$page}, limit {$limit})",
                     'meta'   => $data['meta'] ?? null,
                     'data'   => $data['data'] ?? $data,
                 ];
                 break;
 
-            case 'list_comments':
-                $limit = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
-                $data  = $client->comments->list(['limit' => $limit, 'sort' => 'created_at:desc']);
+            case 'get_customer':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du client requis');
+                }
+                $result = ['action' => "Client #{$id}", 'data' => $client->customers->get($id)];
+                break;
+
+            // ── Requests (biens) ──────────────────────────────────────────────────
+            case 'list_requests':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page   = max(1, (int) ($_POST['page'] ?? 1));
+                $leadId = (int) ($_POST['lead_id_filter'] ?? 0) ?: null;
+                $query  = array_filter([
+                    'limit'   => $limit,
+                    'page'    => $page,
+                    'sort'    => 'created_at:desc',
+                    'lead_id' => $leadId,
+                ], fn($v) => $v !== null);
+                $data   = $client->requests->list($query);
                 $result = [
-                    'action' => "Commentaires (limit {$limit})",
+                    'action' => "Biens (page {$page}, limit {$limit})" . ($leadId ? " [lead #{$leadId}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_request':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du bien requis');
+                }
+                $result = ['action' => "Bien #{$id}", 'data' => $client->requests->get($id)];
+                break;
+
+            // ── Appointments ──────────────────────────────────────────────────────
+            case 'list_appointments':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $leadId = (int) ($_POST['lead_id_filter'] ?? 0) ?: null;
+                $query  = array_filter([
+                    'limit'   => $limit,
+                    'sort'    => 'created_at:desc',
+                    'lead_id' => $leadId,
+                ], fn($v) => $v !== null);
+                $data   = $client->appointments->list($query);
+                $result = [
+                    'action' => "Rendez-vous (limit {$limit})" . ($leadId ? " [lead #{$leadId}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_appointment':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du RDV requis');
+                }
+                $result = ['action' => "Rendez-vous #{$id}", 'data' => $client->appointments->get($id)];
+                break;
+
+            // ── Comments ──────────────────────────────────────────────────────────
+            case 'list_comments':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $leadId = (int) ($_POST['lead_id_filter'] ?? 0) ?: null;
+                $query  = array_filter([
+                    'limit'   => $limit,
+                    'sort'    => 'created_at:desc',
+                    'lead_id' => $leadId,
+                ], fn($v) => $v !== null);
+                $data   = $client->comments->list($query);
+                $result = [
+                    'action' => "Commentaires (limit {$limit})" . ($leadId ? " [lead #{$leadId}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_comment':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du commentaire requis');
+                }
+                $result = ['action' => "Commentaire #{$id}", 'data' => $client->comments->get($id)];
+                break;
+
+            // ── Reminders ─────────────────────────────────────────────────────────
+            case 'list_reminders':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $leadId = (int) ($_POST['lead_id_filter'] ?? 0) ?: null;
+                $query  = array_filter([
+                    'limit'   => $limit,
+                    'sort'    => 'created_at:desc',
+                    'lead_id' => $leadId,
+                ], fn($v) => $v !== null);
+                $data   = $client->reminders->list($query);
+                $result = [
+                    'action' => "Rappels (limit {$limit})" . ($leadId ? " [lead #{$leadId}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_reminder':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du rappel requis');
+                }
+                $result = ['action' => "Rappel #{$id}", 'data' => $client->reminders->get($id)];
+                break;
+
+            // ── Référentiels ──────────────────────────────────────────────────────
+            case 'list_stores':
+                $data   = $client->stores->list(['limit' => 100]);
+                $result = [
+                    'action' => 'Points de vente accessibles',
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_store':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du point de vente requis');
+                }
+                $result = ['action' => "Point de vente #{$id}", 'data' => $client->stores->get($id)];
+                break;
+
+            case 'list_users':
+                $limit  = max(1, min(100, (int) ($_POST['limit'] ?? 20)));
+                $data   = $client->users->list(['limit' => $limit]);
+                $result = [
+                    'action' => "Utilisateurs (limit {$limit})",
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_user':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID de l\'utilisateur requis');
+                }
+                $result = ['action' => "Utilisateur #{$id}", 'data' => $client->users->get($id)];
+                break;
+
+            case 'list_status':
+                $data   = $client->status->list(['limit' => 100]);
+                $result = [
+                    'action' => 'Statuts disponibles',
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'list_origins':
+                $storeId         = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $trackingChannel = trim($_POST['tracking_channel'] ?? '');
+                $include         = trim($_POST['origins_include'] ?? '');
+                $query           = array_filter([
+                    'limit'            => 100,
+                    'store_id'         => $storeId,
+                    'tracking_channel' => $trackingChannel ?: null,
+                    'include'          => $include ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->origins->list($query);
+                $result = [
+                    'action' => 'Origines',
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'list_additional_fields':
+                $storeId  = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $interest = trim($_POST['interest_filter'] ?? '');
+                $query    = array_filter([
+                    'store_id' => $storeId,
+                    'interest' => $interest ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->additionalFields->list($query);
+                $result = [
+                    'action' => 'Champs additionnels',
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'list_request_fields':
+                $storeId  = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $interest = trim($_POST['interest_filter'] ?? '');
+                $query    = array_filter([
+                    'store_id' => $storeId,
+                    'interest' => $interest ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->requestFields->list($query);
+                $result = [
+                    'action' => 'Champs de demande',
                     'meta'   => $data['meta'] ?? null,
                     'data'   => $data['data'] ?? $data,
                 ];
@@ -175,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (ScorimmoAuthException $e) {
         $error = 'Authentification échouée : ' . $e->getMessage();
     } catch (ScorimmoApiException $e) {
-        $error = 'Erreur API (' . $e->getStatusCode() . ') : ' . $e->getMessage();
+        $error = 'Erreur API (' . $e->statusCode . ') : ' . $e->getMessage();
     } catch (\Exception $e) {
         $error = get_class($e) . ' : ' . $e->getMessage();
     }
@@ -211,7 +413,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .action-fields.active { display: block; }
         .row { display: flex; gap: 16px; }
         .row > div { flex: 1; }
-        .group-label { color: #777; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 4px 8px; pointer-events: none; }
         optgroup { color: #aaa; }
     </style>
 </head>
@@ -233,13 +434,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <label>URL de base (SCORIMMO_URL)</label>
-    <input type="text" name="base_url" value="<?= htmlspecialchars($baseUrl) ?>" placeholder="https://pp.scorimmo.com">
+    <input type="text" name="base_url" value="<?= htmlspecialchars($baseUrl) ?>" placeholder="https://pro.scorimmo.com">
 
     <label>Action</label>
     <select name="action" id="action" onchange="toggleFields()">
         <optgroup label="── Auth">
             <option value="token">Obtenir le token JWT</option>
             <option value="validate_token">Valider le token (scopes, stores)</option>
+            <option value="refresh_token">Rafraîchir le token</option>
+            <option value="revoke_token">Révoquer le(s) token(s)</option>
         </optgroup>
         <optgroup label="── Leads">
             <option value="recent_leads" selected>Leads récents (since)</option>
@@ -247,27 +450,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="get_lead">Récupérer un lead par ID</option>
             <option value="update_lead">Mettre à jour un lead</option>
         </optgroup>
-        <optgroup label="── Référentiels">
-            <option value="list_stores">Points de vente</option>
-            <option value="list_users">Utilisateurs</option>
-            <option value="list_status">Statuts disponibles</option>
+        <optgroup label="── Clients">
+            <option value="list_customers">Lister les clients</option>
+            <option value="get_customer">Récupérer un client par ID</option>
+        </optgroup>
+        <optgroup label="── Biens (Requests)">
+            <option value="list_requests">Lister les biens</option>
+            <option value="get_request">Récupérer un bien par ID</option>
         </optgroup>
         <optgroup label="── Activités">
-            <option value="list_appointments">Rendez-vous</option>
-            <option value="list_comments">Commentaires</option>
+            <option value="list_appointments">Rendez-vous (liste)</option>
+            <option value="get_appointment">Récupérer un RDV par ID</option>
+            <option value="list_comments">Commentaires (liste)</option>
+            <option value="get_comment">Récupérer un commentaire par ID</option>
+            <option value="list_reminders">Rappels (liste)</option>
+            <option value="get_reminder">Récupérer un rappel par ID</option>
+        </optgroup>
+        <optgroup label="── Référentiels">
+            <option value="list_stores">Points de vente (liste)</option>
+            <option value="get_store">Récupérer un point de vente par ID</option>
+            <option value="list_users">Utilisateurs (liste)</option>
+            <option value="get_user">Récupérer un utilisateur par ID</option>
+            <option value="list_status">Statuts disponibles</option>
+            <option value="list_origins">Origines</option>
+            <option value="list_additional_fields">Champs additionnels</option>
+            <option value="list_request_fields">Champs de demande</option>
         </optgroup>
     </select>
+
+    <!-- Auth : refresh -->
+    <div id="field-refresh_token" class="action-fields">
+        <label>Refresh token</label>
+        <input type="text" name="refresh_token_value" value="<?= htmlspecialchars($_POST['refresh_token_value'] ?? '') ?>" placeholder="eyJ...">
+    </div>
+
+    <!-- Auth : revoke -->
+    <div id="field-revoke_token" class="action-fields">
+        <label>Refresh token à révoquer (laisser vide pour révoquer tous les tokens)</label>
+        <input type="text" name="revoke_token_value" value="<?= htmlspecialchars($_POST['revoke_token_value'] ?? '') ?>" placeholder="eyJ… ou vide = revoke_all">
+    </div>
 
     <!-- Leads récents -->
     <div id="field-recent_leads" class="action-fields">
         <div class="row">
             <div>
                 <label>Depuis combien d'heures</label>
-                <input type="number" name="hours" value="<?= (int) ($_POST['hours'] ?? 24) ?>" min="1" max="720" placeholder="24">
+                <input type="number" name="hours" value="<?= (int) ($_POST['hours'] ?? 24) ?>" min="1" max="720">
             </div>
             <div>
                 <label>Max pages (100 leads/page)</label>
-                <input type="number" name="max_pages" value="<?= (int) ($_POST['max_pages'] ?? 5) ?>" min="1" max="100" placeholder="5">
+                <input type="number" name="max_pages" value="<?= (int) ($_POST['max_pages'] ?? 5) ?>" min="1" max="100">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Champ de date</label>
+                <select name="date_field">
+                    <option value="created_at" <?= (($_POST['date_field'] ?? '') === 'updated_at') ? '' : 'selected' ?>>created_at</option>
+                    <option value="updated_at" <?= (($_POST['date_field'] ?? '') === 'updated_at') ? 'selected' : '' ?>>updated_at</option>
+                </select>
+            </div>
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
             </div>
         </div>
     </div>
@@ -284,12 +529,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
             </div>
         </div>
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Statut (optionnel)</label>
+                <input type="text" name="status_filter" value="<?= htmlspecialchars($_POST['status_filter'] ?? '') ?>" placeholder="ex: Succès">
+            </div>
+        </div>
     </div>
 
     <!-- Get lead par ID -->
     <div id="field-get_lead" class="action-fields">
         <label>ID du lead</label>
-        <input type="number" name="lead_id" value="<?= (int) ($_POST['lead_id'] ?? '') ?>" placeholder="ex: 42">
+        <input type="number" name="resource_id" value="<?= (int) ($_POST['resource_id'] ?? '') ?: '' ?>" placeholder="ex: 42">
         <label>Relations à inclure (include)</label>
         <input type="text" name="include" value="<?= htmlspecialchars($_POST['include'] ?? '') ?>" placeholder="customer, seller, appointments, comments, reminders, requests">
     </div>
@@ -297,16 +552,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Update lead -->
     <div id="field-update_lead" class="action-fields">
         <label>ID du lead</label>
-        <input type="number" name="lead_id" value="<?= (int) ($_POST['lead_id'] ?? '') ?>" placeholder="ex: 42">
+        <input type="number" name="resource_id" value="<?= (int) ($_POST['resource_id'] ?? '') ?: '' ?>" placeholder="ex: 42">
         <label>Payload JSON (champs à modifier)</label>
         <textarea name="update_payload" placeholder='{"external_lead_id": "CRM-123"}'><?= htmlspecialchars($_POST['update_payload'] ?? '') ?></textarea>
     </div>
 
-    <!-- Actions avec limit générique -->
-    <?php foreach (['list_users', 'list_appointments', 'list_comments'] as $action): ?>
-    <div id="field-<?= $action ?>" class="action-fields">
+    <!-- Lister les clients -->
+    <div id="field-list_customers" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Email (optionnel)</label>
+                <input type="text" name="customer_email" value="<?= htmlspecialchars($_POST['customer_email'] ?? '') ?>" placeholder="filter par email">
+            </div>
+            <div>
+                <label>Téléphone (optionnel)</label>
+                <input type="text" name="customer_phone" value="<?= htmlspecialchars($_POST['customer_phone'] ?? '') ?>" placeholder="filter par téléphone">
+            </div>
+        </div>
+    </div>
+
+    <!-- Lister les biens -->
+    <div id="field-list_requests" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <label>Lead ID (optionnel)</label>
+        <input type="number" name="lead_id_filter" value="<?= (int) ($_POST['lead_id_filter'] ?? 0) ?: '' ?>" placeholder="tous les leads">
+    </div>
+
+    <!-- Activités avec lead_id optionnel (appointments, comments, reminders) -->
+    <?php foreach (['list_appointments', 'list_comments', 'list_reminders'] as $act): ?>
+    <div id="field-<?= $act ?>" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Lead ID (optionnel)</label>
+                <input type="number" name="lead_id_filter" value="<?= (int) ($_POST['lead_id_filter'] ?? 0) ?: '' ?>" placeholder="tous les leads">
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+
+    <!-- Get par ID générique (customer, request, appointment, comment, reminder, store, user) -->
+    <?php foreach (['get_customer', 'get_request', 'get_appointment', 'get_comment', 'get_reminder', 'get_store', 'get_user'] as $act): ?>
+    <div id="field-<?= $act ?>" class="action-fields">
+        <label>ID</label>
+        <input type="number" name="resource_id" value="<?= (int) ($_POST['resource_id'] ?? '') ?: '' ?>" placeholder="ex: 42">
+    </div>
+    <?php endforeach; ?>
+
+    <!-- Utilisateurs avec limit -->
+    <div id="field-list_users" class="action-fields">
         <label>Limit</label>
-        <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+        <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 20) ?>" min="1" max="100">
+    </div>
+
+    <!-- Origines -->
+    <div id="field-list_origins" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Canal de tracking (optionnel)</label>
+                <select name="tracking_channel">
+                    <option value="">tous</option>
+                    <option value="phone" <?= (($_POST['tracking_channel'] ?? '') === 'phone') ? 'selected' : '' ?>>phone</option>
+                    <option value="email" <?= (($_POST['tracking_channel'] ?? '') === 'email') ? 'selected' : '' ?>>email</option>
+                </select>
+            </div>
+        </div>
+        <label>Include (optionnel)</label>
+        <input type="text" name="origins_include" value="<?= htmlspecialchars($_POST['origins_include'] ?? '') ?>" placeholder="tracking">
+    </div>
+
+    <!-- Champs additionnels / champs de demande -->
+    <?php foreach (['list_additional_fields', 'list_request_fields'] as $act): ?>
+    <div id="field-<?= $act ?>" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Intérêt (optionnel)</label>
+                <input type="text" name="interest_filter" value="<?= htmlspecialchars($_POST['interest_filter'] ?? '') ?>" placeholder="ex: Location">
+            </div>
+        </div>
     </div>
     <?php endforeach; ?>
 
@@ -359,6 +712,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const action = document.getElementById('action');
     action.value = <?= json_encode($_POST['action'] ?? 'recent_leads') ?>;
     toggleFields();
+});
+// Désactive les champs des sections cachées avant soumission pour éviter
+// qu'ils n'écrasent les valeurs des champs visibles (même name= sur plusieurs sections).
+document.querySelector('form').addEventListener('submit', function () {
+    document.querySelectorAll('.action-fields:not(.active) input, .action-fields:not(.active) select, .action-fields:not(.active) textarea')
+        .forEach(el => el.disabled = true);
 });
 </script>
 
