@@ -1492,18 +1492,19 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ScorimmoSAS/scorimmo-php.git",
-                "reference": "902bebfc199e979e9a15f47c5bde61d107d593f1"
+                "reference": "b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/902bebfc199e979e9a15f47c5bde61d107d593f1",
-                "reference": "902bebfc199e979e9a15f47c5bde61d107d593f1",
+                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1",
+                "reference": "b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1",
                 "shasum": ""
             },
             "require": {
-                "ext-curl": "*",
                 "ext-json": "*",
-                "php": ">=8.1"
+                "guzzlehttp/guzzle": "^7.0",
+                "php": ">=8.1",
+                "psr/log": "^1.1|^2.0|^3.0"
             },
             "require-dev": {
                 "illuminate/http": "^10.0|^11.0|^12.0",
@@ -1515,6 +1516,7 @@
             },
             "suggest": {
                 "illuminate/support": "Pour l'intégration Laravel (ServiceProvider, Facade, events)",
+                "monolog/monolog": "Pour activer les logs de debug/info/error (PSR-3 compatible)",
                 "symfony/dependency-injection": "Pour l'intégration Symfony (Bundle, autowiring)"
             },
             "default-branch": true,
@@ -1563,7 +1565,7 @@
                 "source": "https://github.com/ScorimmoSAS/scorimmo-php/tree/main",
                 "issues": "https://github.com/ScorimmoSAS/scorimmo-php/issues"
             },
-            "time": "2026-05-06T14:57:35+00:00"
+            "time": "2026-05-06T20:49:56+00:00"
         },
         {
             "name": "symfony/browser-kit",
