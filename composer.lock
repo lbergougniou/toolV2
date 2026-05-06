@@ -1489,12 +1489,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/ScorimmoSAS/scorimmo-php.git",
-                "reference": "5f25221ce917b8d14a257e73caa4d44bdd9edfa1"
+                "reference": "03969db003b0c38ca12ababd520f836e0935e2f3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/5f25221ce917b8d14a257e73caa4d44bdd9edfa1",
-                "reference": "5f25221ce917b8d14a257e73caa4d44bdd9edfa1",
+                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/03969db003b0c38ca12ababd520f836e0935e2f3",
+                "reference": "03969db003b0c38ca12ababd520f836e0935e2f3",
                 "shasum": ""
             },
             "require": {
@@ -1560,7 +1560,7 @@
                 "source": "https://github.com/ScorimmoSAS/scorimmo-php/tree/main",
                 "issues": "https://github.com/ScorimmoSAS/scorimmo-php/issues"
             },
-            "time": "2026-03-11T12:35:06+00:00"
+            "time": "2026-05-06T13:23:00+00:00"
         },
         {
             "name": "symfony/browser-kit",
