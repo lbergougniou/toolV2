@@ -20,9 +20,11 @@ $dotenv->safeLoad();
 $email    = $_ENV['SCORIMMO_EMAIL'] ?? '';
 $password = $_ENV['SCORIMMO_PASSWORD'] ?? '';
 $baseUrl  = $_ENV['SCORIMMO_URL'] ?? 'https://pro.scorimmo.com';
+$tokenName = '';
 
-$result = null;
-$error  = null;
+$result       = null;
+$error        = null;
+$errorDetails = null;
 
 set_time_limit(0);
 ini_set('max_execution_time', '0');
@@ -31,13 +33,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($_POST['email'] ?? $email);
     $password = trim($_POST['password'] ?? $password);
     $baseUrl  = trim($_POST['base_url'] ?? $baseUrl);
+    $tokenName = trim($_POST['token_name'] ?? '');
     $action   = $_POST['action'] ?? 'recent_leads';
 
     try {
         $client = new ScorimmoClient(
-            email:    $email,
-            password: $password,
-            baseUrl:  $baseUrl,
+            email:     $email,
+            password:  $password,
+            baseUrl:   $baseUrl,
+            tokenName: $tokenName ?: null,
         );
 
         switch ($action) {
@@ -73,6 +77,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $refreshToken = trim($_POST['revoke_token_value'] ?? '');
                 $data   = $client->revokeToken($refreshToken ?: null);
                 $result = ['action' => 'Révocation du token', 'data' => $data];
+                break;
+
+            case 'list_tokens':
+                $data   = $client->listTokens();
+                $result = ['action' => 'Refresh tokens actifs', 'data' => $data['data'] ?? $data];
+                break;
+
+            case 'delete_token':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du token requis');
+                }
+                $result = ['action' => "Révocation du token #{$id}", 'data' => $client->deleteToken($id)];
                 break;
 
             // ── Leads ─────────────────────────────────────────────────────────────
@@ -373,11 +390,192 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'data'   => $data['data'] ?? $data,
                 ];
                 break;
+
+            // ── Campagnes ─────────────────────────────────────────────────────────
+            case 'list_campaigns':
+                $limit   = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page    = max(1, (int) ($_POST['page'] ?? 1));
+                $storeId = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $status  = trim($_POST['campaign_status'] ?? '');
+                $query   = array_filter([
+                    'limit'    => $limit,
+                    'page'     => $page,
+                    'sort'     => 'id:desc',
+                    'store_id' => $storeId,
+                    'status'   => $status ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->campaigns->list($query);
+                $result = [
+                    'action' => "Campagnes (page {$page}, limit {$limit})" . ($status ? " [{$status}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_campaign':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID de la campagne requis');
+                }
+                $result = ['action' => "Campagne #{$id}", 'data' => $client->campaigns->get($id)];
+                break;
+
+            case 'list_campaign_fields':
+                $campaignId = (int) ($_POST['campaign_id'] ?? 0) ?: null;
+                $storeId    = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $query      = array_filter([
+                    'campaign_id' => $campaignId,
+                    'store_id'    => $storeId,
+                ], fn($v) => $v !== null);
+                $data   = $client->campaignFields->list($query);
+                $result = [
+                    'action' => 'Questions de campagne' . ($campaignId ? " [campagne #{$campaignId}]" : ''),
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'list_campaign_contacts':
+                $campaignId = (int) ($_POST['campaign_id'] ?? 0);
+                $limit      = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page       = max(1, (int) ($_POST['page'] ?? 1));
+                $status     = trim($_POST['contact_status'] ?? '');
+                $subStatus  = trim($_POST['contact_sub_status'] ?? '');
+                if (!$campaignId) {
+                    throw new \InvalidArgumentException('ID de la campagne requis');
+                }
+                $query = array_filter([
+                    'campaign_id' => $campaignId,
+                    'limit'       => $limit,
+                    'page'        => $page,
+                    'sort'        => 'created_at:desc',
+                    'status'      => $status ?: null,
+                    'sub_status'  => $subStatus ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->campaignContacts->list($query);
+                $result = [
+                    'action' => "Contacts de la campagne #{$campaignId} (page {$page}, limit {$limit})",
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_campaign_contact':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du contact requis');
+                }
+                $result = ['action' => "Contact de campagne #{$id}", 'data' => $client->campaignContacts->get($id)];
+                break;
+
+            case 'inject_campaign_contacts':
+                $campaignId = (int) ($_POST['campaign_id'] ?? 0);
+                $contacts   = json_decode($_POST['contacts_payload'] ?? '[]', true) ?? [];
+                if (!$campaignId) {
+                    throw new \InvalidArgumentException('ID de la campagne requis');
+                }
+                if (empty($contacts) || !array_is_list($contacts)) {
+                    throw new \InvalidArgumentException('Tableau JSON de contacts requis');
+                }
+                $data   = $client->campaignContacts->inject($campaignId, $contacts);
+                $result = [
+                    'action' => "Injection dans la campagne #{$campaignId}",
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            // ── Webhooks ──────────────────────────────────────────────────────────
+            case 'list_webhooks':
+                $limit   = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page    = max(1, (int) ($_POST['page'] ?? 1));
+                $storeId = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $version = trim($_POST['webhook_version'] ?? '');
+                $event   = trim($_POST['webhook_event'] ?? '');
+                $query   = array_filter([
+                    'limit'    => $limit,
+                    'page'     => $page,
+                    'sort'     => 'created_at:desc',
+                    'store_id' => $storeId,
+                    'version'  => $version ?: null,
+                    'event'    => $event ?: null,
+                ], fn($v) => $v !== null);
+                $data   = $client->webhooks->list($query);
+                $result = [
+                    'action' => "Webhooks (page {$page}, limit {$limit})",
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'get_webhook':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du webhook requis');
+                }
+                $result = ['action' => "Webhook #{$id}", 'data' => $client->webhooks->get($id)];
+                break;
+
+            case 'webhook_errors':
+                $limit       = max(1, min(100, (int) ($_POST['limit'] ?? 10)));
+                $page        = max(1, (int) ($_POST['page'] ?? 1));
+                $storeId     = (int) ($_POST['store_id_filter'] ?? 0) ?: null;
+                $webhookName = trim($_POST['webhook_name'] ?? '');
+                $httpStatus  = (int) ($_POST['webhook_http_status'] ?? 0) ?: null;
+                $query       = array_filter([
+                    'limit'        => $limit,
+                    'page'         => $page,
+                    'store_id'     => $storeId,
+                    'webhook_name' => $webhookName ?: null,
+                    'status'       => $httpStatus,
+                ], fn($v) => $v !== null);
+                $data   = $client->webhooks->errors($query);
+                $result = [
+                    'action' => "Échecs de livraison (page {$page}, limit {$limit})",
+                    'meta'   => $data['meta'] ?? null,
+                    'data'   => $data['data'] ?? $data,
+                ];
+                break;
+
+            case 'create_webhook':
+                $payload = json_decode($_POST['webhook_payload'] ?? '{}', true) ?? [];
+                if (empty($payload)) {
+                    throw new \InvalidArgumentException('Payload JSON requis');
+                }
+                $result = ['action' => 'Création du webhook', 'data' => $client->webhooks->create($payload)];
+                break;
+
+            case 'update_webhook':
+                $id      = (int) ($_POST['resource_id'] ?? 0);
+                $payload = json_decode($_POST['webhook_payload'] ?? '{}', true) ?? [];
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du webhook requis');
+                }
+                if (empty($payload)) {
+                    throw new \InvalidArgumentException('Payload JSON requis');
+                }
+                $result = ['action' => "Mise à jour du webhook #{$id}", 'data' => $client->webhooks->update($id, $payload)];
+                break;
+
+            case 'delete_webhook':
+                $id = (int) ($_POST['resource_id'] ?? 0);
+                if (!$id) {
+                    throw new \InvalidArgumentException('ID du webhook requis');
+                }
+                $client->webhooks->delete($id);
+                $result = ['action' => "Suppression du webhook #{$id}", 'data' => ['deleted' => true, 'id' => $id]];
+                break;
         }
     } catch (ScorimmoAuthException $e) {
         $error = 'Authentification échouée : ' . $e->getMessage();
     } catch (ScorimmoApiException $e) {
         $error = 'Erreur API (' . $e->statusCode . ') : ' . $e->getMessage();
+        $errorDetails = array_filter([
+            'api_code'     => $e->apiCode,
+            'retry_after'  => $e->retryAfter,
+            'field_errors' => $e->getFieldErrors(),
+            'body'         => $e->body,
+        ], fn($v) => $v !== null && $v !== []);
     } catch (\Exception $e) {
         $error = get_class($e) . ' : ' . $e->getMessage();
     }
@@ -418,7 +616,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 
-<h1>Test SDK Scorimmo PHP <span class="badge">API v2</span></h1>
+<h1>Test SDK Scorimmo PHP <span class="badge">API v2</span> <span class="badge">SDK <?= htmlspecialchars(ScorimmoClient::VERSION) ?></span></h1>
 <p style="color:#777">Teste les appels à l'API v2 via <code>scorimmo/scorimmo-php</code></p>
 
 <form method="POST">
@@ -436,6 +634,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label>URL de base (SCORIMMO_URL)</label>
     <input type="text" name="base_url" value="<?= htmlspecialchars($baseUrl) ?>" placeholder="https://pro.scorimmo.com">
 
+    <label>Nom du refresh token (optionnel, 5 tokens actifs max par compte)</label>
+    <input type="text" name="token_name" value="<?= htmlspecialchars($tokenName) ?>" placeholder="ex: test-sdk">
+
     <label>Action</label>
     <select name="action" id="action" onchange="toggleFields()">
         <optgroup label="── Auth">
@@ -443,6 +644,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="validate_token">Valider le token (scopes, stores)</option>
             <option value="refresh_token">Rafraîchir le token</option>
             <option value="revoke_token">Révoquer le(s) token(s)</option>
+            <option value="list_tokens">Lister les refresh tokens</option>
+            <option value="delete_token">Révoquer un refresh token par ID</option>
         </optgroup>
         <optgroup label="── Leads">
             <option value="recent_leads" selected>Leads récents (since)</option>
@@ -475,6 +678,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="list_origins">Origines</option>
             <option value="list_additional_fields">Champs additionnels</option>
             <option value="list_request_fields">Champs de demande</option>
+        </optgroup>
+        <optgroup label="── Campagnes">
+            <option value="list_campaigns">Campagnes (liste)</option>
+            <option value="get_campaign">Récupérer une campagne par ID</option>
+            <option value="list_campaign_fields">Questions de campagne</option>
+            <option value="list_campaign_contacts">Contacts d'une campagne</option>
+            <option value="get_campaign_contact">Récupérer un contact par ID</option>
+            <option value="inject_campaign_contacts">Injecter des contacts (écriture)</option>
+        </optgroup>
+        <optgroup label="── Webhooks">
+            <option value="list_webhooks">Webhooks (liste)</option>
+            <option value="get_webhook">Récupérer un webhook par ID</option>
+            <option value="webhook_errors">Échecs de livraison</option>
+            <option value="create_webhook">Créer un webhook (écriture)</option>
+            <option value="update_webhook">Mettre à jour un webhook (écriture)</option>
+            <option value="delete_webhook">Supprimer un webhook (écriture)</option>
         </optgroup>
     </select>
 
@@ -613,8 +832,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php endforeach; ?>
 
-    <!-- Get par ID générique (customer, request, appointment, comment, reminder, store, user) -->
-    <?php foreach (['get_customer', 'get_request', 'get_appointment', 'get_comment', 'get_reminder', 'get_store', 'get_user'] as $act): ?>
+    <!-- Get par ID générique (customer, request, appointment, comment, reminder, store, user, campagnes, webhooks, tokens) -->
+    <?php foreach (['get_customer', 'get_request', 'get_appointment', 'get_comment', 'get_reminder', 'get_store', 'get_user', 'get_campaign', 'get_campaign_contact', 'get_webhook', 'delete_webhook', 'delete_token'] as $act): ?>
     <div id="field-<?= $act ?>" class="action-fields">
         <label>ID</label>
         <input type="number" name="resource_id" value="<?= (int) ($_POST['resource_id'] ?? '') ?: '' ?>" placeholder="ex: 42">
@@ -663,11 +882,167 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <?php endforeach; ?>
 
+    <!-- Campagnes -->
+    <div id="field-list_campaigns" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Statut (optionnel)</label>
+                <select name="campaign_status">
+                    <option value="">tous</option>
+                    <?php foreach (['upcoming', 'open', 'closed'] as $opt): ?>
+                    <option value="<?= $opt ?>" <?= (($_POST['campaign_status'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="field-list_campaign_fields" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Campagne ID (optionnel)</label>
+                <input type="number" name="campaign_id" value="<?= (int) ($_POST['campaign_id'] ?? 0) ?: '' ?>" placeholder="toutes">
+            </div>
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+        </div>
+    </div>
+
+    <div id="field-list_campaign_contacts" class="action-fields">
+        <label>Campagne ID (obligatoire)</label>
+        <input type="number" name="campaign_id" value="<?= (int) ($_POST['campaign_id'] ?? 0) ?: '' ?>" placeholder="ex: 12">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Statut (optionnel)</label>
+                <select name="contact_status">
+                    <option value="">tous</option>
+                    <?php foreach (['new', 'recontact', 'no_answer', 'closed', 'validated'] as $opt): ?>
+                    <option value="<?= $opt ?>" <?= (($_POST['contact_status'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label>Sous-statut (optionnel)</label>
+                <select name="contact_sub_status">
+                    <option value="">tous</option>
+                    <?php foreach (['no_follow', 'refuse_answer', 'delete_contact', 'no_answer'] as $opt): ?>
+                    <option value="<?= $opt ?>" <?= (($_POST['contact_sub_status'] ?? '') === $opt) ? 'selected' : '' ?>><?= $opt ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="field-inject_campaign_contacts" class="action-fields">
+        <label>Campagne ID (obligatoire)</label>
+        <input type="number" name="campaign_id" value="<?= (int) ($_POST['campaign_id'] ?? 0) ?: '' ?>" placeholder="ex: 12">
+        <label>Contacts JSON (1 à 100, last_name et phone obligatoires)</label>
+        <textarea name="contacts_payload" placeholder='[{"last_name": "Dupont", "phone": "0600000000", "answers": {"Question": "Réponse"}}]'><?= htmlspecialchars($_POST['contacts_payload'] ?? '') ?></textarea>
+    </div>
+
+    <!-- Webhooks -->
+    <div id="field-list_webhooks" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Version (optionnel)</label>
+                <select name="webhook_version">
+                    <option value="">toutes</option>
+                    <option value="1" <?= (($_POST['webhook_version'] ?? '') === '1') ? 'selected' : '' ?>>1</option>
+                    <option value="2" <?= (($_POST['webhook_version'] ?? '') === '2') ? 'selected' : '' ?>>2</option>
+                </select>
+            </div>
+        </div>
+        <label>Événement (optionnel)</label>
+        <input type="text" name="webhook_event" value="<?= htmlspecialchars($_POST['webhook_event'] ?? '') ?>" placeholder="ex: CREATION_LEAD">
+    </div>
+
+    <div id="field-webhook_errors" class="action-fields">
+        <div class="row">
+            <div>
+                <label>Limit</label>
+                <input type="number" name="limit" value="<?= (int) ($_POST['limit'] ?? 10) ?>" min="1" max="100">
+            </div>
+            <div>
+                <label>Page</label>
+                <input type="number" name="page" value="<?= (int) ($_POST['page'] ?? 1) ?>" min="1">
+            </div>
+        </div>
+        <div class="row">
+            <div>
+                <label>Store ID (optionnel)</label>
+                <input type="number" name="store_id_filter" value="<?= (int) ($_POST['store_id_filter'] ?? 0) ?: '' ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Nom du webhook (optionnel)</label>
+                <input type="text" name="webhook_name" value="<?= htmlspecialchars($_POST['webhook_name'] ?? '') ?>" placeholder="tous">
+            </div>
+            <div>
+                <label>Code HTTP de l'URL cible (optionnel)</label>
+                <input type="number" name="webhook_http_status" value="<?= (int) ($_POST['webhook_http_status'] ?? 0) ?: '' ?>" placeholder="ex: 500">
+            </div>
+        </div>
+    </div>
+
+    <div id="field-create_webhook" class="action-fields">
+        <label>Payload JSON (store_id, name, url et events obligatoires)</label>
+        <textarea name="webhook_payload" placeholder='{"store_id": 5, "name": "Test SDK", "url": "https://exemple.fr/webhook", "events": ["CREATION_LEAD"]}'><?= htmlspecialchars($_POST['webhook_payload'] ?? '') ?></textarea>
+    </div>
+
+    <div id="field-update_webhook" class="action-fields">
+        <label>ID du webhook</label>
+        <input type="number" name="resource_id" value="<?= (int) ($_POST['resource_id'] ?? '') ?: '' ?>" placeholder="ex: 42">
+        <label>Payload JSON (champs à modifier)</label>
+        <textarea name="webhook_payload" placeholder='{"name": "Nouveau nom"}'><?= htmlspecialchars($_POST['webhook_payload'] ?? '') ?></textarea>
+    </div>
+
     <button type="submit">Envoyer la requête</button>
 </form>
 
 <?php if ($error): ?>
     <div class="error"><strong>Erreur :</strong> <?= htmlspecialchars($error) ?></div>
+    <?php if ($errorDetails): ?>
+        <pre><?= htmlspecialchars(json_encode($errorDetails, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) ?></pre>
+    <?php endif; ?>
 <?php endif; ?>
 
 <?php if ($result): ?>

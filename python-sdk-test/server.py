@@ -14,7 +14,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
 app = Flask(__name__)
 PORT = int(os.environ.get("PYTHON_SDK_TEST_PORT", 3098))
 
-DEFAULT_USERNAME = os.environ.get("SCORIMMO_USERNAME", "")
+DEFAULT_EMAIL    = os.environ.get("SCORIMMO_EMAIL", "")
 DEFAULT_PASSWORD = os.environ.get("SCORIMMO_PASSWORD", "")
 
 # ─── HTML helpers ─────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ def layout(body: str) -> str:
 </html>"""
 
 
-def form_html(username: str = "", password: str = "", action: str = "recent_leads", limit: str = "10", lead_id: str = "") -> str:
+def form_html(email: str = "", password: str = "", action: str = "recent_leads", limit: str = "10", lead_id: str = "") -> str:
     def sel(v: str) -> str:
         return "selected" if action == v else ""
 
@@ -85,8 +85,8 @@ def form_html(username: str = "", password: str = "", action: str = "recent_lead
   <form method="POST" action="/run">
     <div class="row">
       <div>
-        <label>Identifiant (SCORIMMO_USERNAME)</label>
-        <input type="text" name="username" value="{escape(username)}" placeholder="identifiant" required>
+        <label>Email (SCORIMMO_EMAIL)</label>
+        <input type="text" name="email" value="{escape(email)}" placeholder="user@scorimmo.com" required>
       </div>
       <div>
         <label>Mot de passe (SCORIMMO_PASSWORD)</label>
@@ -121,12 +121,12 @@ def form_html(username: str = "", password: str = "", action: str = "recent_lead
 
 @app.get("/")
 def index():
-    return layout(form_html(username=DEFAULT_USERNAME, password=DEFAULT_PASSWORD))
+    return layout(form_html(email=DEFAULT_EMAIL, password=DEFAULT_PASSWORD))
 
 
 @app.post("/run")
 def run():
-    username = request.form.get("username", "")
+    email    = request.form.get("email", "")
     password = request.form.get("password", "")
     action   = request.form.get("action", "recent_leads")
     limit    = request.form.get("limit", "10")
@@ -135,7 +135,7 @@ def run():
     result_html = ""
 
     try:
-        client = ScorimmoClient(username=username, password=password)
+        client = ScorimmoClient(email=email, password=password)
 
         match action:
             case "token":
@@ -173,7 +173,7 @@ def run():
     except Exception as e:
         result_html = f'<div class="error"><strong>Erreur :</strong> {escape(f"{type(e).__name__} : {e}")}</div>'
 
-    return layout(form_html(username=username, password=password, action=action, limit=limit, lead_id=lead_id) + result_html)
+    return layout(form_html(email=email, password=password, action=action, limit=limit, lead_id=lead_id) + result_html)
 
 
 # ─── Start ────────────────────────────────────────────────────────────────────

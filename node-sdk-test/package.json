@@ -13,6 +13,6 @@
   "dependencies": {
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "scorimmo-node": "github:ScorimmoSAS/scorimmo-node"
+    "scorimmo-node": "^1.1.0"
   }
 }

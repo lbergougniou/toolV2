@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1bfcd0715cc4e0ef4e45e48456bd722a",
+    "content-hash": "d79beed851547930c4e65886b10bbc33",
     "packages": [
         {
             "name": "giggsey/libphonenumber-for-php",
@@ -1488,16 +1488,16 @@
         },
         {
             "name": "scorimmo/scorimmo-php",
-            "version": "dev-main",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ScorimmoSAS/scorimmo-php.git",
-                "reference": "b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1"
+                "reference": "9054dedfa14222a1b828a98ac2f87a1815a0b9db"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1",
-                "reference": "b62619fa7c515c8b82ac1c3e6b7b366ab4000cd1",
+                "url": "https://api.github.com/repos/ScorimmoSAS/scorimmo-php/zipball/9054dedfa14222a1b828a98ac2f87a1815a0b9db",
+                "reference": "9054dedfa14222a1b828a98ac2f87a1815a0b9db",
                 "shasum": ""
             },
             "require": {
@@ -1519,16 +1519,15 @@
                 "monolog/monolog": "Pour activer les logs de debug/info/error (PSR-3 compatible)",
                 "symfony/dependency-injection": "Pour l'intégration Symfony (Bundle, autowiring)"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "Scorimmo\\Bridge\\Laravel\\ScorimmoServiceProvider"
-                    ],
                     "aliases": {
                         "Scorimmo": "Scorimmo\\Bridge\\Laravel\\ScorimmoFacade"
-                    }
+                    },
+                    "providers": [
+                        "Scorimmo\\Bridge\\Laravel\\ScorimmoServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -1536,16 +1535,7 @@
                     "Scorimmo\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Scorimmo\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit tests --testdox"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1562,10 +1552,11 @@
                 "webhook"
             ],
             "support": {
-                "source": "https://github.com/ScorimmoSAS/scorimmo-php/tree/main",
-                "issues": "https://github.com/ScorimmoSAS/scorimmo-php/issues"
+                "issues": "https://github.com/ScorimmoSAS/scorimmo-php/issues",
+                "source": "https://github.com/ScorimmoSAS/scorimmo-php/tree/v1.1.0"
             },
-            "time": "2026-05-06T20:49:56+00:00"
+            "time": "2026-11-09T09:56:10+00:00",
+            "published-time": "2026-11-09T10:16:06+00:00"
         },
         {
             "name": "symfony/browser-kit",
@@ -3674,9 +3665,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "scorimmo/scorimmo-php": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -3686,5 +3675,5 @@
         "ext-mbstring": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }

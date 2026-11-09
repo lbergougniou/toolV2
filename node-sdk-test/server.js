@@ -13,7 +13,7 @@ const PORT = process.env.NODE_SDK_TEST_PORT || 3099;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const DEFAULT_USERNAME = process.env.SCORIMMO_USERNAME ?? '';
+const DEFAULT_EMAIL    = process.env.SCORIMMO_EMAIL ?? '';
 const DEFAULT_PASSWORD = process.env.SCORIMMO_PASSWORD ?? '';
 
 // ─── HTML helpers ────────────────────────────────────────────────────────────
@@ -73,8 +73,8 @@ app.get('/', (req, res) => {
     <form method="POST" action="/run">
       <div class="row">
         <div>
-          <label>Identifiant (SCORIMMO_USERNAME)</label>
-          <input type="text" name="username" value="${esc(DEFAULT_USERNAME)}" placeholder="identifiant" required>
+          <label>Email (SCORIMMO_EMAIL)</label>
+          <input type="text" name="email" value="${esc(DEFAULT_EMAIL)}" placeholder="user@scorimmo.com" required>
         </div>
         <div>
           <label>Mot de passe (SCORIMMO_PASSWORD)</label>
@@ -106,12 +106,12 @@ app.get('/', (req, res) => {
 });
 
 app.post('/run', async (req, res) => {
-  const { username, password, action, limit, lead_id } = req.body;
+  const { email, password, action, limit, lead_id } = req.body;
 
   let resultHtml = '';
 
   try {
-    const client = new ScorimmoClient({ username, password });
+    const client = new ScorimmoClient({ email, password });
 
     let title, data;
 
@@ -165,8 +165,8 @@ app.post('/run', async (req, res) => {
     <form method="POST" action="/run">
       <div class="row">
         <div>
-          <label>Identifiant (SCORIMMO_USERNAME)</label>
-          <input type="text" name="username" value="${esc(username)}" placeholder="identifiant" required>
+          <label>Email (SCORIMMO_EMAIL)</label>
+          <input type="text" name="email" value="${esc(email)}" placeholder="user@scorimmo.com" required>
         </div>
         <div>
           <label>Mot de passe (SCORIMMO_PASSWORD)</label>
