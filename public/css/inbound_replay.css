@@ -1,0 +1,288 @@
+/* Palette reprise de la webapp (assets/styles/colors.scss) */
+:root {
+    --button-default: rgb(0 1 104);
+    --chart-sky: rgb(0 1 107);
+    --dark-blue: rgb(24 33 43);
+    --grey-text: rgb(57 57 57);
+    --grey-text-2: rgb(119 119 119);
+    --grey-text-3: rgb(204 204 204);
+    --placeholder: rgb(211 211 211);
+    --light-grey-bg: rgb(243 243 243);
+    --light-grey-bg-3: rgb(221 221 221);
+    --firework: rgb(238 52 50);
+    --spark: rgb(255 75 0);
+    --status-green: #1FB43F;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: opensans, "Open Sans", arial, helvetica, sans-serif;
+    font-size: 13px;
+    color: var(--grey-text);
+    background: var(--light-grey-bg);
+}
+
+.hidden { display: none !important; }
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 24px;
+    background: var(--dark-blue);
+    color: #fff;
+}
+
+.topbar-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.topbar-target {
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgb(255 255 255 / .12);
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.topbar-target.is-prod { background: var(--firework); }
+
+.page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px;
+}
+
+.block {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / .08);
+}
+
+.titled-separator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--chart-sky);
+    text-transform: uppercase;
+}
+
+.titled-separator::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--light-grey-bg-3);
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--light-grey-bg-3);
+}
+
+.tab {
+    padding: 8px 16px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--grey-text-2);
+    font: inherit;
+    cursor: pointer;
+}
+
+.tab.active {
+    border-bottom-color: var(--button-default);
+    color: var(--button-default);
+    font-weight: 600;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px 18px;
+    align-items: end;
+}
+
+/* Libellé au-dessus du champ, collé à 2 px (mixin field-label-above de la webapp) */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.field > span {
+    font-size: 12px;
+    color: var(--grey-text-2);
+}
+
+.field input,
+.field select,
+.field textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--grey-text-3);
+    border-radius: 3px;
+    background: #fff;
+    color: var(--grey-text);
+    font: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    border-color: var(--button-default);
+    outline: none;
+}
+
+.field input::placeholder,
+.field textarea::placeholder { color: var(--placeholder); }
+
+.field textarea { resize: vertical; font-family: monospace; }
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-bottom: 8px;
+    cursor: pointer;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+.button-default {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    border: 0;
+    border-radius: 3px;
+    background: var(--button-default);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.button-default:hover { background: rgb(0 1 104 / .85); }
+.button-default:disabled { opacity: .5; cursor: not-allowed; }
+.button-default.is-loading i { animation: fa-spin 1s linear infinite; }
+.button-default.is-loading i::before { content: "\f110"; }
+
+.icon-button {
+    padding: 4px 8px;
+    border: 0;
+    background: none;
+    color: var(--button-default);
+    cursor: pointer;
+}
+
+.alert {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    border-left: 4px solid;
+    background: #fff;
+}
+
+.alert-error { border-color: var(--firework); color: var(--firework); }
+.alert-warning { border-color: var(--spark); color: var(--spark); }
+
+.results-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.results-head .titled-separator { flex: 1; }
+
+.table-wrapper { overflow-x: auto; }
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    padding: 8px;
+    border-bottom: 2px solid var(--light-grey-bg-3);
+    color: var(--grey-text-2);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--light-grey-bg);
+    vertical-align: top;
+}
+
+.table tbody tr:hover { background: var(--light-grey-bg); }
+
+.nowrap { white-space: nowrap; }
+
+.ellipsis {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.send-status.is-success { color: var(--status-green); }
+.send-status.is-error { color: var(--firework); }
+.send-status a { color: var(--button-default); font-weight: 600; }
+
+.cell-error { color: var(--firework); }
+
+.empty-state {
+    padding: 24px;
+    color: var(--grey-text-3);
+    text-align: center;
+}
+
+dialog {
+    width: min(900px, 90vw);
+    max-height: 85vh;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    box-shadow: 0 8px 30px rgb(0 0 0 / .25);
+}
+
+dialog::backdrop { background: rgb(24 33 43 / .5); }
+
+.dialog-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--dark-blue);
+    color: #fff;
+    font-weight: 600;
+}
+
+.dialog-head .icon-button { color: #fff; }
+
+dialog pre {
+    margin: 0;
+    padding: 16px;
+    max-height: calc(85vh - 44px);
+    overflow: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
