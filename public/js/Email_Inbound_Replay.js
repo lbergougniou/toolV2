@@ -4,7 +4,7 @@
 (() => {
     const API_URL = 'api/inbound_replay.php';
     const STATUS_LABELS = {new: 'Nouveau', current: 'En cours', treated: 'Traité', wait_ai: 'Attente IA'};
-    const {targetBaseUrl, isProdTarget} = window.inboundReplay;
+    const {targetBaseUrl, isProdTarget, smtpTarget} = window.inboundReplay;
 
     const searchForm = document.getElementById('searchForm');
     const resultsBlock = document.getElementById('resultsBlock');
@@ -37,6 +37,8 @@
     const sendOptions = () => {
         const container = document.getElementById('sendOptions');
         return {
+            transport: container.querySelector('[name="transport"]').value,
+            envelope_from: container.querySelector('[name="envelope_from"]').value.trim(),
             recipient: container.querySelector('[name="recipient"]').value.trim(),
             subject_prefix: container.querySelector('[name="subject_prefix"]').value,
             fresh: container.querySelector('[name="fresh"]').checked,
@@ -54,6 +56,13 @@
         resultsTitle.textContent = 'Erreur';
         rows.innerHTML = `<tr><td colspan="10" class="cell-error"><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(message)}</td></tr>`;
     };
+
+    const transportSelect = document.querySelector('#sendOptions [name="transport"]');
+    transportSelect.addEventListener('change', () => {
+        document.querySelectorAll('#sendOptions [data-transport]').forEach((field) => {
+            field.classList.toggle('hidden', field.dataset.transport !== transportSelect.value);
+        });
+    });
 
     document.querySelectorAll('.tab').forEach((tab) => {
         tab.addEventListener('click', () => {
@@ -121,7 +130,7 @@
         dialog.showModal();
         try {
             const {payload} = await call({action: 'preview', id, options: sendOptions()});
-            content.textContent = JSON.stringify(payload, null, 2);
+            content.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
         } catch (error) {
             content.textContent = error.message;
         }
@@ -140,7 +149,7 @@
         const link = emailId ? ` <a href="${escapeHtml(targetBaseUrl)}/email/voir/${encodeURIComponent(emailId)}" target="_blank" rel="noopener">#${emailId}</a>` : '';
         cell.className = `send-status nowrap ${result.success ? 'is-success' : 'is-error'}`;
         cell.title = result.error ?? (typeof response === 'object' ? JSON.stringify(response) : response);
-        cell.innerHTML = `<i class="fas ${result.success ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${result.http_code || '—'} ${escapeHtml(message)}${link}`;
+        cell.innerHTML = `<i class="fas ${result.success ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${result.code || '—'} ${escapeHtml(message)}${link}`;
     };
 
     sendButton.addEventListener('click', async () => {
@@ -148,7 +157,12 @@
         if (ids.length === 0) {
             return;
         }
-        if (isProdTarget && !window.confirm(`La cible est la PRODUCTION : ${ids.length} email(s) vont créer de vrais emails/leads. Continuer ?`)) {
+        const smtp = transportSelect.value === 'smtp';
+        // En SMTP, l'instance appelée dépend du domaine destinataire routé par Oxeva, pas de la cible affichée.
+        const warning = smtp
+            ? `Envoi SMTP au MTA Oxeva (${smtpTarget}) : ${ids.length} email(s) seront livrés à l'instance associée au domaine destinataire. Continuer ?`
+            : `La cible est la PRODUCTION : ${ids.length} email(s) vont créer de vrais emails/leads. Continuer ?`;
+        if ((smtp || isProdTarget) && !window.confirm(warning)) {
             return;
         }
         setLoading(sendButton, true);
@@ -161,7 +175,7 @@
             const {results} = await call({action: 'send', ids, options: sendOptions()});
             results.forEach(renderSendStatus);
             const ok = results.filter((r) => r.success).length;
-            resultsTitle.textContent = `${ok}/${results.length} email(s) acceptés par la cible`;
+            resultsTitle.textContent = `${ok}/${results.length} email(s) acceptés par ${smtp ? 'le MTA' : 'la cible'}`;
         } catch (error) {
             ids.forEach((id) => {
                 const cell = rows.querySelector(`tr[data-id="${id}"] .send-status`);

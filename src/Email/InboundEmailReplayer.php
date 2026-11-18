@@ -16,6 +16,14 @@ use RuntimeException;
  * attendue par InboundEmailSignatureVerifier : `X-Scorimmo-Signature: sha256=<hmac>` de
  * `<X-Scorimmo-Timestamp>.<body brut>`.
  *
+ * Transport `smtp` : l'email est reconstruit en MIME et remis au MTA Oxeva par InboundSmtpSender ;
+ * le MTA appelle lui-même le webhook. Teste toute la chaîne (SMTP, extraction MIME, signature côté
+ * MTA) mais sans retour direct : l'email créé se retrouve par son destinataire.
+ *
+ * Les traceurs d'une instance portent son domaine (mail.scorimmo.com en prod, mail-pp.scorimmo.com
+ * en PPD) : `recipientDomain` remplace le domaine du destinataire, quel que soit le transport, pour
+ * qu'un email de prod rejoué en PPD arrive sur le traceur correspondant.
+ *
  * Le webhook dédoublonne deux fois : par `id` × destinataire (clé de livraison) et par le hash
  * plain|html|destinataire (doublon de contenu). L'option `fresh` génère un id unique et ajoute un
  * commentaire HTML invisible pour que chaque rejeu soit traité comme un nouvel email.
@@ -27,6 +35,8 @@ final readonly class InboundEmailReplayer
     private const array STATUSES = ['new', 'current', 'treated', 'wait_ai'];
     private const array SUBSTATUSES = ['lead_created', 'replied', 'forwarded', 'deleted', 'deleted_auto'];
     private const array ORDERS = ['recent' => 'e.id DESC', 'oldest' => 'e.id ASC', 'random' => 'RAND()'];
+    public const string TRANSPORT_WEBHOOK = 'webhook';
+    public const string TRANSPORT_SMTP = 'smtp';
 
     /** @var array<string, array{label: string, search_methods: list<array{field: string, pattern: string, operator: string}>}> */
     private array $emailTypes;
@@ -35,6 +45,8 @@ final readonly class InboundEmailReplayer
         private DatabaseConnection $db,
         private string $targetUrl,
         private string $secret,
+        private string $recipientDomain = '',
+        private ?InboundSmtpSender $smtp = null,
     ) {
         $config = file_get_contents(__DIR__ . '/../../config/email_types.json');
         if ($config === false) {
@@ -157,30 +169,57 @@ final readonly class InboundEmailReplayer
      */
     public function replay(array $ids, array $options): array
     {
-        if ($this->secret === '') {
+        $smtp = $this->smtpSender($options);
+        if ($smtp === null && $this->secret === '') {
             throw new RuntimeException('INBOUND_TARGET_SECRET non renseigné dans le .env');
         }
+        $envelopeFrom = self::optionalAddress($options, 'envelope_from');
+        // Tunnel ouvert une fois pour le lot.
+        $endpoint = $smtp?->connect();
 
         $results = [];
-        foreach ($this->fetchFull($ids) as $email) {
-            $body = $this->encode($this->buildPayload($email, $options));
-            $results[] = ['source_id' => (int) $email['id']] + $this->post($body);
-            usleep(200_000);
+        foreach ($this->fetchFull($ids) as $i => $email) {
+            if ($i > 0) {
+                usleep(200_000);
+            }
+            $payload = $this->buildPayload($email, $options);
+            $results[] = ['source_id' => (int) $email['id']] + ($smtp === null
+                ? $this->post($this->encode($payload))
+                : $smtp->send($endpoint, $envelopeFrom ?: $payload['envelope']['from'], $payload['envelope']['to'], $this->buildMime($payload)));
         }
         return $results;
     }
 
     /**
+     * Payload JSON du webhook, ou message MIME brut en transport SMTP.
+     *
      * @param array<string, mixed> $options
-     * @return array<string, mixed>
+     * @return array<string, mixed>|string
      */
-    public function preview(int $id, array $options): array
+    public function preview(int $id, array $options): array|string
     {
         $emails = $this->fetchFull([$id]);
         if ($emails === []) {
             throw new InvalidArgumentException("Email $id introuvable ou anonymisé");
         }
-        return $this->buildPayload($emails[0], $options);
+        $payload = $this->buildPayload($emails[0], $options);
+        return $this->smtpSender($options) === null ? $payload : $this->buildMime($payload);
+    }
+
+    /**
+     * Libellé de la cible SMTP, vide si le transport SMTP n'est pas configuré.
+     */
+    public function getSmtpTarget(): string
+    {
+        return $this->smtp?->describe() ?? '';
+    }
+
+    /**
+     * Domaine imposé aux destinataires, vide = domaine d'origine conservé.
+     */
+    public function getRecipientDomain(): string
+    {
+        return $this->recipientDomain;
     }
 
     /**
@@ -241,7 +280,12 @@ final readonly class InboundEmailReplayer
             }
         }
 
-        $recipient = trim((string) ($options['recipient'] ?? '')) ?: (string) $email['to_email'];
+        $recipient = self::optionalAddress($options, 'recipient') ?: (string) $email['to_email'];
+        if ($this->recipientDomain !== '') {
+            // Partie locale (traceur) conservée, domaine de l'instance cible imposé.
+            $recipient = strstr($recipient, '@', true) ?: $recipient;
+            $recipient .= '@' . $this->recipientDomain;
+        }
         $subject = (string) ($email['sender_subject'] ?? '');
         $prefix = trim((string) ($options['subject_prefix'] ?? ''));
         if ($prefix !== '') {
@@ -290,6 +334,69 @@ final readonly class InboundEmailReplayer
     }
 
     /**
+     * Expéditeur SMTP du transport demandé, null pour le webhook.
+     *
+     * @param array<string, mixed> $options
+     */
+    private function smtpSender(array $options): ?InboundSmtpSender
+    {
+        if (($options['transport'] ?? self::TRANSPORT_WEBHOOK) !== self::TRANSPORT_SMTP) {
+            return null;
+        }
+        return $this->smtp ?? throw new RuntimeException('INBOUND_SMTP_HOST non renseigné dans le .env');
+    }
+
+    /**
+     * Adresse saisie dans les options (vide = non forcée), validée car reprise telle quelle dans
+     * les en-têtes MIME et l'enveloppe.
+     *
+     * @param array<string, mixed> $options
+     */
+    private static function optionalAddress(array $options, string $key): string
+    {
+        $address = trim((string) ($options[$key] ?? ''));
+        if ($address !== '' && filter_var($address, FILTER_VALIDATE_EMAIL) === false) {
+            throw new InvalidArgumentException("Adresse invalide ($key) : $address");
+        }
+        return $address;
+    }
+
+    /**
+     * Message RFC 5322 multipart/alternative reconstruit depuis le payload : les en-têtes d'origine
+     * ne sont pas stockés, seul le contenu parsé par Scorimmo (texte, HTML, objet, From) est rejoué.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function buildMime(array $payload): string
+    {
+        $boundary = 'toolv2-' . bin2hex(random_bytes(12));
+        $headers = [
+            'From: ' . $payload['envelope']['from'],
+            'To: ' . $payload['envelope']['to'],
+            'Subject: ' . mb_encode_mimeheader((string) $payload['subject'], 'UTF-8', 'B', "\r\n"),
+            'Date: ' . (new DateTimeImmutable((string) $payload['received_at']))->format(DATE_RFC2822),
+            'Message-ID: <' . $payload['id'] . '>',
+            'MIME-Version: 1.0',
+        ];
+
+        $parts = [];
+        foreach (['text/plain' => $payload['text'], 'text/html' => $payload['html']] as $type => $content) {
+            if (is_string($content) && trim($content) !== '') {
+                $parts[] = "Content-Type: $type; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+                    . rtrim(chunk_split(base64_encode($content), 76, "\r\n"));
+            }
+        }
+        $headers[] = "Content-Type: multipart/alternative; boundary=\"$boundary\"";
+
+        $body = '';
+        foreach ($parts as $part) {
+            $body .= "--$boundary\r\n$part\r\n";
+        }
+
+        return implode("\r\n", $headers) . "\r\n\r\n" . $body . "--$boundary--\r\n";
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
     private function encode(array $payload): string
@@ -298,7 +405,7 @@ final readonly class InboundEmailReplayer
     }
 
     /**
-     * @return array{http_code: int, success: bool, response: mixed, error: string|null, duration_ms: int}
+     * @return array{code: int, success: bool, response: mixed, error: string|null, duration_ms: int}
      */
     private function post(string $body): array
     {
@@ -326,7 +433,7 @@ final readonly class InboundEmailReplayer
         $decoded = is_string($response) ? json_decode($response, true) : null;
 
         return [
-            'http_code' => $httpCode,
+            'code' => $httpCode,
             'success' => $httpCode >= 200 && $httpCode < 300,
             'response' => $decoded ?? (is_string($response) ? mb_substr($response, 0, 2000) : null),
             'error' => $error !== '' ? $error : null,

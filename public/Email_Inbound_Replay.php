@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 /**
  * Rejeu d'emails reçus (base via tunnel SSH) sur le webhook Oxeva `/email/inbound` d'une instance
- * cible, signés HMAC : sert à tester le parsing avec des emails réels.
+ * cible, signés HMAC, ou par SMTP (swaks) au MTA Oxeva pour tester la chaîne de bout en bout.
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use App\Email\InboundEmailReplayer;
+use App\Email\InboundSmtpSender;
 use Database\DatabaseConnection;
 use Dotenv\Dotenv;
 
@@ -18,6 +19,8 @@ $emailTypes = [];
 $origins = [];
 $targetBaseUrl = '';
 $secretConfigured = false;
+$smtpTarget = '';
+$recipientDomain = '';
 
 try {
     Dotenv::createImmutable(__DIR__ . '/..')->safeLoad();
@@ -25,10 +28,18 @@ try {
     if (($_ENV['INBOUND_TARGET_URL'] ?? '') === '') {
         throw new RuntimeException('INBOUND_TARGET_URL non renseigné dans le .env');
     }
-    $replayer = new InboundEmailReplayer(DatabaseConnection::getInstance(), $_ENV['INBOUND_TARGET_URL'], $_ENV['INBOUND_TARGET_SECRET'] ?? '');
+    $replayer = new InboundEmailReplayer(
+        DatabaseConnection::getInstance(),
+        $_ENV['INBOUND_TARGET_URL'],
+        $_ENV['INBOUND_TARGET_SECRET'] ?? '',
+        trim($_ENV['INBOUND_RECIPIENT_DOMAIN'] ?? ''),
+        InboundSmtpSender::fromEnv($_ENV),
+    );
     $emailTypes = $replayer->getEmailTypes();
     $origins = $replayer->getRecentOrigins();
     $targetBaseUrl = $replayer->getTargetBaseUrl();
+    $smtpTarget = $replayer->getSmtpTarget();
+    $recipientDomain = $replayer->getRecipientDomain();
 } catch (Throwable $e) {
     $error = $e->getMessage();
 }
@@ -58,7 +69,7 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
         <div class="alert alert-error"><i class="fas fa-triangle-exclamation"></i> <?= $e($error) ?></div>
     <?php endif; ?>
     <?php if (!$secretConfigured): ?>
-        <div class="alert alert-warning"><i class="fas fa-key"></i> INBOUND_TARGET_SECRET absent du .env : la recherche fonctionne, pas l'envoi.</div>
+        <div class="alert alert-warning"><i class="fas fa-key"></i> INBOUND_TARGET_SECRET absent du .env : la recherche fonctionne, pas l'envoi webhook.</div>
     <?php endif; ?>
 
     <section class="block">
@@ -165,8 +176,19 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
         <h2 class="titled-separator"><span>Options d'envoi</span></h2>
         <div class="field-grid" id="sendOptions">
             <label class="field">
+                <span>Transport</span>
+                <select name="transport">
+                    <option value="<?= InboundEmailReplayer::TRANSPORT_WEBHOOK ?>">Webhook direct (<?= $e($targetBaseUrl ?: 'non configuré') ?>)</option>
+                    <option value="<?= InboundEmailReplayer::TRANSPORT_SMTP ?>" <?= $smtpTarget === '' ? 'disabled' : '' ?>>SMTP via MTA Oxeva (<?= $e($smtpTarget ?: 'INBOUND_SMTP_HOST absent') ?>)</option>
+                </select>
+            </label>
+            <label class="field hidden" data-transport="smtp" title="Vide = expéditeur d'origine (SPF en échec côté MTA, mais détection du parser préservée)">
+                <span>MAIL FROM forcé</span>
+                <input type="email" name="envelope_from" placeholder="Vide = expéditeur d'origine">
+            </label>
+            <label class="field">
                 <span>Destinataire forcé</span>
-                <input type="email" name="recipient" placeholder="Vide = destinataire d'origine">
+                <input type="email" name="recipient" placeholder="<?= $e($recipientDomain === '' ? 'Vide = destinataire d\'origine' : "Vide = traceur d'origine @$recipientDomain") ?>">
             </label>
             <label class="field">
                 <span>Préfixe d'objet</span>
@@ -184,7 +206,7 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
     <section class="block hidden" id="resultsBlock">
         <div class="results-head">
             <h2 class="titled-separator"><span id="resultsTitle">Emails</span></h2>
-            <button type="button" class="button-default" id="sendButton" <?= $secretConfigured ? '' : 'disabled' ?>>
+            <button type="button" class="button-default" id="sendButton" <?= $secretConfigured || $smtpTarget !== '' ? '' : 'disabled' ?>>
                 <i class="fas fa-paper-plane"></i> Envoyer la sélection
             </button>
         </div>
@@ -219,7 +241,11 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
 </dialog>
 
 <script>
-    window.inboundReplay = {targetBaseUrl: <?= json_encode($targetBaseUrl, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES) ?>, isProdTarget: <?= $isProdTarget ? 'true' : 'false' ?>};
+    window.inboundReplay = {
+        targetBaseUrl: <?= json_encode($targetBaseUrl, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES) ?>,
+        isProdTarget: <?= $isProdTarget ? 'true' : 'false' ?>,
+        smtpTarget: <?= json_encode($smtpTarget, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES) ?>,
+    };
 </script>
 <script src="js/Email_Inbound_Replay.js"></script>
 </body>
