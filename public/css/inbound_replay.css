@@ -286,3 +286,13 @@ dialog pre {
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+.badge-api {
+    display: inline-block;
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--button-default);
+}

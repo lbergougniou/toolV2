@@ -20,6 +20,13 @@ use RuntimeException;
  * le MTA appelle lui-même le webhook. Teste toute la chaîne (SMTP, extraction MIME, signature côté
  * MTA) mais sans retour direct : l'email créé se retrouve par son destinataire.
  *
+ * En transport webhook, les emails reçus par l'API (marqueur `API` de additional_data) sont rejoués
+ * sur `POST /api/email` de la cible avec un JWT obtenu par `/api/login_check` (compte API v1) : la
+ * webapp les marque `API` avant parsing, ce qui active les parsers Api* (isFromApi()). Seuls
+ * destinataire, objet et contenu sont envoyés : les champs client de la requête d'origine sont mêlés
+ * au résultat du parsing dans additional_data, le parser travaille donc seul. La date de réception
+ * est celle de l'appel (keep_date sans effet).
+ *
  * Cible webhook au choix (option `target`) : la préprod (défaut) ou une instance locale, pour tester
  * les parsers sur son poste. Le SMTP ne vise que la préprod, le MTA routant selon le domaine.
  *
@@ -64,7 +71,7 @@ final readonly class InboundEmailReplayer
 
     /**
      * Préprod depuis INBOUND_TARGET_*, locale depuis INBOUND_LOCAL_* (URL par défaut : serveur Symfony
-     * local), SMTP depuis INBOUND_SMTP_*.
+     * local), comptes API depuis INBOUND_{TARGET,LOCAL}_API_*, SMTP depuis INBOUND_SMTP_*.
      *
      * @param array<string, mixed> $env
      */
@@ -80,6 +87,8 @@ final readonly class InboundEmailReplayer
                 $ppdUrl,
                 (string) ($env['INBOUND_TARGET_SECRET'] ?? ''),
                 trim((string) ($env['INBOUND_RECIPIENT_DOMAIN'] ?? '')),
+                apiUsername: trim((string) ($env['INBOUND_TARGET_API_USERNAME'] ?? '')),
+                apiPassword: (string) ($env['INBOUND_TARGET_API_PASSWORD'] ?? ''),
             ),
             self::TARGET_LOCAL => new InboundWebhookTarget(
                 'Local',
@@ -87,6 +96,8 @@ final readonly class InboundEmailReplayer
                 (string) ($env['INBOUND_LOCAL_SECRET'] ?? ''),
                 trim((string) ($env['INBOUND_LOCAL_RECIPIENT_DOMAIN'] ?? '')),
                 false,
+                trim((string) ($env['INBOUND_LOCAL_API_USERNAME'] ?? '')),
+                (string) ($env['INBOUND_LOCAL_API_PASSWORD'] ?? ''),
             ),
         ], InboundSmtpSender::fromEnv($env));
     }
@@ -182,6 +193,9 @@ final readonly class InboundEmailReplayer
                 $where[] = 'e.substatus = ?';
                 $params[] = $substatus;
             }
+            if (!empty($filters['api_only'])) {
+                $where[] = "JSON_CONTAINS_PATH(e.additional_data, 'one', '$.API')";
+            }
             if (!empty($filters['exclude_duplicates'])) {
                 // Les doublons détectés à la réception sont auto-supprimés en `deleted_auto`.
                 $where[] = "(e.substatus IS NULL OR e.substatus <> 'deleted_auto')";
@@ -192,7 +206,8 @@ final readonly class InboundEmailReplayer
 
         $sql = sprintf(
             'SELECT e.id, e.created_at, e.sender_email, e.to_email, e.sender_subject, e.origin, e.status,
-                    e.substatus, e.lead_id, LENGTH(c.html) AS html_length, LENGTH(c.plain) AS plain_length
+                    e.substatus, e.lead_id, LENGTH(c.html) AS html_length, LENGTH(c.plain) AS plain_length,
+                    JSON_CONTAINS_PATH(e.additional_data, \'one\', \'$.API\') AS is_api
              FROM si_received_email e
              INNER JOIN si_received_email_content c ON c.id = e.content_id
              WHERE %s
@@ -215,28 +230,37 @@ final readonly class InboundEmailReplayer
     {
         $smtp = $this->smtpSender($options);
         $target = $this->target($options);
-        if ($smtp === null && $target->secret === '') {
-            throw new RuntimeException(sprintf('Secret de la cible %s non renseigné dans le .env', $target->label));
-        }
         $envelopeFrom = self::optionalAddress($options, 'envelope_from');
+        $emails = $this->fetchFull($ids);
+        $token = null;
+        if ($smtp === null) {
+            // Prérequis vérifiés avant tout envoi pour ne pas interrompre un lot à moitié rejoué.
+            $viaApi = array_filter(array_column($emails, 'is_api'));
+            if (count($viaApi) < count($emails) && $target->secret === '') {
+                throw new RuntimeException(sprintf('Secret de la cible %s non renseigné dans le .env', $target->label));
+            }
+            $token = $viaApi !== [] ? $this->apiLogin($target) : null;
+        }
         // Tunnel ouvert une fois pour le lot.
         $endpoint = $smtp?->connect();
 
         $results = [];
-        foreach ($this->fetchFull($ids) as $i => $email) {
+        foreach ($emails as $i => $email) {
             if ($i > 0) {
                 usleep(200_000);
             }
             $payload = $this->buildPayload($email, $options);
-            $results[] = ['source_id' => (int) $email['id']] + ($smtp === null
-                ? $this->post($target, $this->encode($payload))
-                : $smtp->send($endpoint, $envelopeFrom ?: $payload['envelope']['from'], $payload['envelope']['to'], $this->buildMime($payload)));
+            $results[] = ['source_id' => (int) $email['id']] + match (true) {
+                $smtp !== null => $smtp->send($endpoint, $envelopeFrom ?: $payload['envelope']['from'], $payload['envelope']['to'], $this->buildMime($payload)),
+                !empty($email['is_api']) => $this->request($target->endpoint('/api/email'), $this->encode($this->buildApiBody($payload)), ['Authorization: Bearer ' . $token], $target->verifyTls),
+                default => $this->post($target, $this->encode($payload)),
+            };
         }
         return $results;
     }
 
     /**
-     * Payload JSON du webhook, ou message MIME brut en transport SMTP.
+     * Payload JSON du webhook (corps de `/api/email` pour un email reçu par l'API), ou message MIME brut en SMTP.
      *
      * @param array<string, mixed> $options
      * @return array<string, mixed>|string
@@ -248,7 +272,11 @@ final readonly class InboundEmailReplayer
             throw new InvalidArgumentException("Email $id introuvable ou anonymisé");
         }
         $payload = $this->buildPayload($emails[0], $options);
-        return $this->smtpSender($options) === null ? $payload : $this->buildMime($payload);
+        return match (true) {
+            $this->smtpSender($options) !== null => $this->buildMime($payload),
+            !empty($emails[0]['is_api']) => $this->buildApiBody($payload),
+            default => $payload,
+        };
     }
 
     /**
@@ -285,7 +313,8 @@ final readonly class InboundEmailReplayer
         }
         $sql = sprintf(
             'SELECT e.id, e.created_at, e.received_date, e.sender_email, e.to_email, e.sender_subject,
-                    e.additional_data, c.plain, c.html
+                    e.additional_data, c.plain, c.html,
+                    JSON_CONTAINS_PATH(e.additional_data, \'one\', \'$.API\') AS is_api
              FROM si_received_email e
              INNER JOIN si_received_email_content c ON c.id = e.content_id
              WHERE e.anonymized_at IS NULL AND e.id IN (%s)
@@ -388,6 +417,44 @@ final readonly class InboundEmailReplayer
     }
 
     /**
+     * JWT du compte API v1 de la cible.
+     */
+    private function apiLogin(InboundWebhookTarget $target): string
+    {
+        if (!$target->hasApiCredentials()) {
+            throw new RuntimeException(sprintf('Compte API de la cible %s non renseigné dans le .env', $target->label));
+        }
+        $result = $this->request(
+            $target->endpoint('/api/login_check'),
+            $this->encode(['username' => $target->apiUsername, 'password' => $target->apiPassword]),
+            [],
+            $target->verifyTls,
+        );
+        $token = $result['response']['token'] ?? null;
+        if (!$result['success'] || !is_string($token)) {
+            $message = is_array($result['response']) ? ($result['response']['message'] ?? '') : (string) $result['response'];
+            throw new RuntimeException(sprintf('Connexion API %s refusée (HTTP %d) : %s', $target->label, $result['code'], $result['error'] ?? $message));
+        }
+        return $token;
+    }
+
+    /**
+     * Corps de `POST /api/email` : le marqueur `fresh` du contenu change aussi le hash anti-doublon API.
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function buildApiBody(array $payload): array
+    {
+        return array_filter([
+            'to_email' => $payload['envelope']['to'],
+            'subject' => $payload['subject'],
+            'plain' => $payload['text'],
+            'html' => $payload['html'],
+        ], static fn(mixed $value): bool => is_string($value));
+    }
+
+    /**
      * Adresse saisie dans les options (vide = non forcée), validée car reprise telle quelle dans
      * les en-têtes MIME et l'enveloppe.
      *
@@ -453,21 +520,30 @@ final readonly class InboundEmailReplayer
         $timestamp = (string) time();
         $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $target->secret);
 
+        return $this->request($target->url, $body, [
+            'X-Scorimmo-Timestamp: ' . $timestamp,
+            'X-Scorimmo-Signature: ' . $signature,
+        ], $target->verifyTls);
+    }
+
+    /**
+     * POST JSON. Un en-tête Authorization remplace le basic auth éventuel de l'URL.
+     *
+     * @param list<string> $headers
+     * @return array{code: int, success: bool, response: mixed, error: string|null, duration_ms: int}
+     */
+    private function request(string $url, string $body, array $headers, bool $verifyTls): array
+    {
         $start = hrtime(true);
-        $ch = curl_init($target->url);
+        $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $body,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Accept: application/json',
-                'X-Scorimmo-Timestamp: ' . $timestamp,
-                'X-Scorimmo-Signature: ' . $signature,
-            ],
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json', ...$headers],
             CURLOPT_TIMEOUT => 60,
-            CURLOPT_SSL_VERIFYPEER => $target->verifyTls,
-            CURLOPT_SSL_VERIFYHOST => $target->verifyTls ? 2 : 0,
+            CURLOPT_SSL_VERIFYPEER => $verifyTls,
+            CURLOPT_SSL_VERIFYHOST => $verifyTls ? 2 : 0,
         ]);
         $response = curl_exec($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

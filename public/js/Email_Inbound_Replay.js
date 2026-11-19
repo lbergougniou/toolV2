@@ -1,6 +1,6 @@
 /**
  * Rejeu d'emails entrants : recherche, aperçu du payload signé et envoi sur le webhook cible
- * (préprod ou instance locale).
+ * (préprod ou instance locale ; emails API sur `/api/email`), ou par SMTP.
  */
 (() => {
     const API_URL = 'api/inbound_replay.php';
@@ -103,7 +103,7 @@
         const formData = new FormData(searchForm);
         const filters = mode === 'ids'
             ? {ids: formData.get('ids')}
-            : {...Object.fromEntries(formData), ids: '', exclude_duplicates: formData.has('exclude_duplicates')};
+            : {...Object.fromEntries(formData), ids: '', exclude_duplicates: formData.has('exclude_duplicates'), api_only: formData.has('api_only')};
 
         setLoading(button, true);
         try {
@@ -132,7 +132,7 @@
                 <td class="ellipsis" title="${escapeHtml(email.sender_email)}">${escapeHtml(email.sender_email)}</td>
                 <td class="ellipsis" title="${escapeHtml(email.to_email)}">${escapeHtml(email.to_email)}</td>
                 <td class="ellipsis" title="${escapeHtml(email.sender_subject)}">${escapeHtml(email.sender_subject)}</td>
-                <td>${escapeHtml(email.origin)}</td>
+                <td>${escapeHtml(email.origin)}${Number(email.is_api) ? ' <span class="badge-api" title="Reçu par /api/email">API</span>' : ''}</td>
                 <td class="nowrap">${escapeHtml(STATUS_LABELS[email.status] ?? email.status)}${email.substatus ? `<br><small>${escapeHtml(email.substatus)}</small>` : ''}</td>
                 <td class="send-status nowrap"></td>
                 <td><button type="button" class="icon-button preview" title="Voir le payload"><i class="fas fa-code"></i></button></td>

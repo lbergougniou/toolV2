@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 /**
  * Rejeu d'emails reçus (base via tunnel SSH) sur le webhook Oxeva `/email/inbound` de la préprod ou
- * d'une instance locale (test des parsers), signés HMAC, ou par SMTP (swaks) au MTA Oxeva pour tester
- * la chaîne de bout en bout.
+ * d'une instance locale (test des parsers), signés HMAC, par SMTP (swaks) au MTA Oxeva pour tester
+ * la chaîne de bout en bout. En webhook, les emails reçus par l'API sont rejoués sur `/api/email`
+ * (compte API v1) pour les parsers Api*.
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -17,7 +18,7 @@ use Dotenv\Dotenv;
 $error = null;
 $emailTypes = [];
 $origins = [];
-/** @var array<string, array{label: string, baseUrl: string, isProd: bool, secretConfigured: bool, recipientDomain: string}> $targets */
+/** @var array<string, array{label: string, baseUrl: string, isProd: bool, secretConfigured: bool, apiConfigured: bool, recipientDomain: string}> $targets */
 $targets = [];
 $smtpTarget = '';
 
@@ -30,6 +31,7 @@ try {
             'baseUrl' => $target->baseUrl(),
             'isProd' => $target->isProd(),
             'secretConfigured' => $target->secret !== '',
+            'apiConfigured' => $target->hasApiCredentials(),
             'recipientDomain' => $target->recipientDomain,
         ];
     }
@@ -43,7 +45,7 @@ try {
 $defaultTarget = $targets[array_key_first($targets) ?? ''] ?? null;
 $targetBaseUrl = $defaultTarget['baseUrl'] ?? '';
 $recipientDomain = $defaultTarget['recipientDomain'] ?? '';
-$canSend = $smtpTarget !== '' || array_filter(array_column($targets, 'secretConfigured')) !== [];
+$canSend = $smtpTarget !== '' || array_filter([...array_column($targets, 'secretConfigured'), ...array_column($targets, 'apiConfigured')]) !== [];
 $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
 ?>
 <!DOCTYPE html>
@@ -155,6 +157,9 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
                     <label class="checkbox">
                         <input type="checkbox" name="exclude_duplicates" checked> Exclure les doublons
                     </label>
+                    <label class="checkbox" title="Emails reçus par POST /api/email (marqueur API), rejoués sur /api/email en webhook direct">
+                        <input type="checkbox" name="api_only"> Emails API uniquement
+                    </label>
                 </div>
             </div>
 
@@ -185,7 +190,7 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
             <label class="field">
                 <span>Transport</span>
                 <select name="transport">
-                    <option value="<?= InboundEmailReplayer::TRANSPORT_WEBHOOK ?>">Webhook direct</option>
+                    <option value="<?= InboundEmailReplayer::TRANSPORT_WEBHOOK ?>" title="Emails API sur /api/email, les autres sur /email/inbound">Webhook direct (emails API via /api/email)</option>
                     <option value="<?= InboundEmailReplayer::TRANSPORT_SMTP ?>" <?= $smtpTarget === '' ? 'disabled' : '' ?>>SMTP via MTA Oxeva (<?= $e($smtpTarget ?: 'INBOUND_SMTP_HOST absent') ?>)</option>
                 </select>
             </label>
@@ -199,12 +204,12 @@ $e = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES);
             </label>
             <label class="field">
                 <span>Préfixe d'objet</span>
-                <input type="text" name="subject_prefix" value="TECH :">
+                <input type="text" name="subject_prefix" value="[TECH]">
             </label>
             <label class="checkbox" title="Id de livraison unique + marqueur invisible : contourne l'idempotence et l'anti-doublon de contenu">
                 <input type="checkbox" name="fresh" checked> Forcer un nouvel email
             </label>
-            <label class="checkbox">
+            <label class="checkbox" title="Sans effet sur les emails API : la date est celle de l'appel">
                 <input type="checkbox" name="keep_date"> Conserver la date de réception d'origine
             </label>
         </div>
