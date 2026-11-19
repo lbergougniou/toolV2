@@ -42,7 +42,7 @@ final readonly class InboundEmailReplayer
     public const string TRANSPORT_SMTP = 'smtp';
     public const string TARGET_PPD = 'ppd';
     public const string TARGET_LOCAL = 'local';
-    private const string DEFAULT_LOCAL_URL = 'http://localhost:8000/email/inbound';
+    private const string DEFAULT_LOCAL_URL = 'https://localhost:8000/email/inbound';
 
     /** @var array<string, array{label: string, search_methods: list<array{field: string, pattern: string, operator: string}>}> */
     private array $emailTypes;
