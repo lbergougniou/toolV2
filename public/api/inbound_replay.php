@@ -12,7 +12,6 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use App\Email\InboundEmailReplayer;
-use App\Email\InboundSmtpSender;
 use App\Logger\Logger;
 use Database\DatabaseConnection;
 use Dotenv\Dotenv;
@@ -31,13 +30,7 @@ try {
     Dotenv::createImmutable(__DIR__ . '/../..')->safeLoad();
     $data = json_decode((string) file_get_contents('php://input'), true, 16, JSON_THROW_ON_ERROR);
 
-    $replayer = new InboundEmailReplayer(
-        DatabaseConnection::getInstance(),
-        $_ENV['INBOUND_TARGET_URL'] ?? '',
-        $_ENV['INBOUND_TARGET_SECRET'] ?? '',
-        trim($_ENV['INBOUND_RECIPIENT_DOMAIN'] ?? ''),
-        InboundSmtpSender::fromEnv($_ENV),
-    );
+    $replayer = InboundEmailReplayer::fromEnv(DatabaseConnection::getInstance(), $_ENV);
     $options = (array) ($data['options'] ?? []);
 
     $result = match ($data['action'] ?? '') {
@@ -50,7 +43,7 @@ try {
     if (($data['action'] ?? '') === 'send') {
         $logger->info('Rejeu d\'emails', [
             'transport' => $options['transport'] ?? InboundEmailReplayer::TRANSPORT_WEBHOOK,
-            'target' => ($options['transport'] ?? '') === InboundEmailReplayer::TRANSPORT_SMTP ? $replayer->getSmtpTarget() : $replayer->getTargetBaseUrl(),
+            'target' => ($options['transport'] ?? '') === InboundEmailReplayer::TRANSPORT_SMTP ? $replayer->getSmtpTarget() : $replayer->target($options)->baseUrl(),
             'results' => array_map(static fn(array $r): array => [
                 'source_id' => $r['source_id'],
                 'code' => $r['code'],

@@ -20,9 +20,12 @@ use RuntimeException;
  * le MTA appelle lui-même le webhook. Teste toute la chaîne (SMTP, extraction MIME, signature côté
  * MTA) mais sans retour direct : l'email créé se retrouve par son destinataire.
  *
+ * Cible webhook au choix (option `target`) : la préprod (défaut) ou une instance locale, pour tester
+ * les parsers sur son poste. Le SMTP ne vise que la préprod, le MTA routant selon le domaine.
+ *
  * Les traceurs d'une instance portent son domaine (mail.scorimmo.com en prod, mail-pp.scorimmo.com
- * en PPD) : `recipientDomain` remplace le domaine du destinataire, quel que soit le transport, pour
- * qu'un email de prod rejoué en PPD arrive sur le traceur correspondant.
+ * en PPD) : le `recipientDomain` de la cible remplace le domaine du destinataire, quel que soit le
+ * transport, pour qu'un email de prod rejoué en PPD arrive sur le traceur correspondant.
  *
  * Le webhook dédoublonne deux fois : par `id` × destinataire (clé de livraison) et par le hash
  * plain|html|destinataire (doublon de contenu). L'option `fresh` génère un id unique et ajoute un
@@ -37,15 +40,19 @@ final readonly class InboundEmailReplayer
     private const array ORDERS = ['recent' => 'e.id DESC', 'oldest' => 'e.id ASC', 'random' => 'RAND()'];
     public const string TRANSPORT_WEBHOOK = 'webhook';
     public const string TRANSPORT_SMTP = 'smtp';
+    public const string TARGET_PPD = 'ppd';
+    public const string TARGET_LOCAL = 'local';
+    private const string DEFAULT_LOCAL_URL = 'http://localhost:8000/email/inbound';
 
     /** @var array<string, array{label: string, search_methods: list<array{field: string, pattern: string, operator: string}>}> */
     private array $emailTypes;
 
+    /**
+     * @param array<string, InboundWebhookTarget> $targets Cibles webhook par clé, la première est le défaut
+     */
     public function __construct(
         private DatabaseConnection $db,
-        private string $targetUrl,
-        private string $secret,
-        private string $recipientDomain = '',
+        private array $targets,
         private ?InboundSmtpSender $smtp = null,
     ) {
         $config = file_get_contents(__DIR__ . '/../../config/email_types.json');
@@ -53,6 +60,52 @@ final readonly class InboundEmailReplayer
             throw new RuntimeException('config/email_types.json introuvable');
         }
         $this->emailTypes = json_decode($config, true, 16, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Préprod depuis INBOUND_TARGET_*, locale depuis INBOUND_LOCAL_* (URL par défaut : serveur Symfony
+     * local), SMTP depuis INBOUND_SMTP_*.
+     *
+     * @param array<string, mixed> $env
+     */
+    public static function fromEnv(DatabaseConnection $db, array $env): self
+    {
+        $ppdUrl = trim((string) ($env['INBOUND_TARGET_URL'] ?? ''));
+        if ($ppdUrl === '') {
+            throw new RuntimeException('INBOUND_TARGET_URL non renseigné dans le .env');
+        }
+        return new self($db, [
+            self::TARGET_PPD => new InboundWebhookTarget(
+                'Préprod',
+                $ppdUrl,
+                (string) ($env['INBOUND_TARGET_SECRET'] ?? ''),
+                trim((string) ($env['INBOUND_RECIPIENT_DOMAIN'] ?? '')),
+            ),
+            self::TARGET_LOCAL => new InboundWebhookTarget(
+                'Local',
+                trim((string) ($env['INBOUND_LOCAL_URL'] ?? '')) ?: self::DEFAULT_LOCAL_URL,
+                (string) ($env['INBOUND_LOCAL_SECRET'] ?? ''),
+                trim((string) ($env['INBOUND_LOCAL_RECIPIENT_DOMAIN'] ?? '')),
+                false,
+            ),
+        ], InboundSmtpSender::fromEnv($env));
+    }
+
+    /**
+     * @return array<string, InboundWebhookTarget>
+     */
+    public function getTargets(): array
+    {
+        return $this->targets;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    public function target(array $options): InboundWebhookTarget
+    {
+        $key = (string) ($options['target'] ?? '') ?: array_key_first($this->targets);
+        return $this->targets[$key] ?? throw new InvalidArgumentException("Cible inconnue : $key");
     }
 
     /**
@@ -78,15 +131,6 @@ final readonly class InboundEmailReplayer
              GROUP BY origin ORDER BY COUNT(*) DESC LIMIT 200',
         );
         return array_column($rows, 'origin');
-    }
-
-    /**
-     * Base de l'instance cible sans identifiants (lien vers l'email créé).
-     */
-    public function getTargetBaseUrl(): string
-    {
-        $parts = parse_url($this->targetUrl);
-        return sprintf('%s://%s%s', $parts['scheme'] ?? 'https', $parts['host'] ?? '', isset($parts['port']) ? ':' . $parts['port'] : '');
     }
 
     /**
@@ -170,8 +214,9 @@ final readonly class InboundEmailReplayer
     public function replay(array $ids, array $options): array
     {
         $smtp = $this->smtpSender($options);
-        if ($smtp === null && $this->secret === '') {
-            throw new RuntimeException('INBOUND_TARGET_SECRET non renseigné dans le .env');
+        $target = $this->target($options);
+        if ($smtp === null && $target->secret === '') {
+            throw new RuntimeException(sprintf('Secret de la cible %s non renseigné dans le .env', $target->label));
         }
         $envelopeFrom = self::optionalAddress($options, 'envelope_from');
         // Tunnel ouvert une fois pour le lot.
@@ -184,7 +229,7 @@ final readonly class InboundEmailReplayer
             }
             $payload = $this->buildPayload($email, $options);
             $results[] = ['source_id' => (int) $email['id']] + ($smtp === null
-                ? $this->post($this->encode($payload))
+                ? $this->post($target, $this->encode($payload))
                 : $smtp->send($endpoint, $envelopeFrom ?: $payload['envelope']['from'], $payload['envelope']['to'], $this->buildMime($payload)));
         }
         return $results;
@@ -212,14 +257,6 @@ final readonly class InboundEmailReplayer
     public function getSmtpTarget(): string
     {
         return $this->smtp?->describe() ?? '';
-    }
-
-    /**
-     * Domaine imposé aux destinataires, vide = domaine d'origine conservé.
-     */
-    public function getRecipientDomain(): string
-    {
-        return $this->recipientDomain;
     }
 
     /**
@@ -281,10 +318,11 @@ final readonly class InboundEmailReplayer
         }
 
         $recipient = self::optionalAddress($options, 'recipient') ?: (string) $email['to_email'];
-        if ($this->recipientDomain !== '') {
+        $recipientDomain = $this->target($options)->recipientDomain;
+        if ($recipientDomain !== '') {
             // Partie locale (traceur) conservée, domaine de l'instance cible imposé.
             $recipient = strstr($recipient, '@', true) ?: $recipient;
-            $recipient .= '@' . $this->recipientDomain;
+            $recipient .= '@' . $recipientDomain;
         }
         $subject = (string) ($email['sender_subject'] ?? '');
         $prefix = trim((string) ($options['subject_prefix'] ?? ''));
@@ -342,6 +380,9 @@ final readonly class InboundEmailReplayer
     {
         if (($options['transport'] ?? self::TRANSPORT_WEBHOOK) !== self::TRANSPORT_SMTP) {
             return null;
+        }
+        if ($this->target($options) !== $this->targets[array_key_first($this->targets)]) {
+            throw new InvalidArgumentException('Le transport SMTP ne vise que la préprod (routage du MTA par domaine)');
         }
         return $this->smtp ?? throw new RuntimeException('INBOUND_SMTP_HOST non renseigné dans le .env');
     }
@@ -407,13 +448,13 @@ final readonly class InboundEmailReplayer
     /**
      * @return array{code: int, success: bool, response: mixed, error: string|null, duration_ms: int}
      */
-    private function post(string $body): array
+    private function post(InboundWebhookTarget $target, string $body): array
     {
         $timestamp = (string) time();
-        $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $this->secret);
+        $signature = 'sha256=' . hash_hmac('sha256', $timestamp . '.' . $body, $target->secret);
 
         $start = hrtime(true);
-        $ch = curl_init($this->targetUrl);
+        $ch = curl_init($target->url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -425,6 +466,8 @@ final readonly class InboundEmailReplayer
                 'X-Scorimmo-Signature: ' . $signature,
             ],
             CURLOPT_TIMEOUT => 60,
+            CURLOPT_SSL_VERIFYPEER => $target->verifyTls,
+            CURLOPT_SSL_VERIFYHOST => $target->verifyTls ? 2 : 0,
         ]);
         $response = curl_exec($ch);
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

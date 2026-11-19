@@ -1,10 +1,11 @@
 /**
- * Rejeu d'emails entrants : recherche, aperçu du payload signé et envoi sur le webhook cible.
+ * Rejeu d'emails entrants : recherche, aperçu du payload signé et envoi sur le webhook cible
+ * (préprod ou instance locale).
  */
 (() => {
     const API_URL = 'api/inbound_replay.php';
     const STATUS_LABELS = {new: 'Nouveau', current: 'En cours', treated: 'Traité', wait_ai: 'Attente IA'};
-    const {targetBaseUrl, isProdTarget, smtpTarget} = window.inboundReplay;
+    const {targets, smtpTarget} = window.inboundReplay;
 
     const searchForm = document.getElementById('searchForm');
     const resultsBlock = document.getElementById('resultsBlock');
@@ -37,6 +38,7 @@
     const sendOptions = () => {
         const container = document.getElementById('sendOptions');
         return {
+            target: container.querySelector('[name="target"]').value,
             transport: container.querySelector('[name="transport"]').value,
             envelope_from: container.querySelector('[name="envelope_from"]').value.trim(),
             recipient: container.querySelector('[name="recipient"]').value.trim(),
@@ -58,10 +60,33 @@
     };
 
     const transportSelect = document.querySelector('#sendOptions [name="transport"]');
-    transportSelect.addEventListener('change', () => {
+    const targetSelect = document.querySelector('#sendOptions [name="target"]');
+    const smtpOption = transportSelect.querySelector('option[value="smtp"]');
+    const currentTarget = () => targets[targetSelect.value] ?? {};
+
+    const refreshTransport = () => {
         document.querySelectorAll('#sendOptions [data-transport]').forEach((field) => {
             field.classList.toggle('hidden', field.dataset.transport !== transportSelect.value);
         });
+    };
+    transportSelect.addEventListener('change', refreshTransport);
+
+    // Le MTA route vers la préprod selon le domaine : SMTP réservé à la première cible.
+    targetSelect.addEventListener('change', () => {
+        const target = currentTarget();
+        const isDefault = targetSelect.selectedIndex === 0;
+        smtpOption.disabled = !isDefault || smtpTarget === '';
+        if (!isDefault && transportSelect.value === 'smtp') {
+            transportSelect.value = 'webhook';
+            refreshTransport();
+        }
+        const badge = document.getElementById('targetBadge');
+        badge.classList.toggle('is-prod', Boolean(target.isProd));
+        badge.querySelector('span').textContent = `${target.baseUrl}/email/inbound`;
+        document.getElementById('secretWarning').classList.toggle('hidden', Boolean(target.secretConfigured));
+        document.querySelector('#sendOptions [name="recipient"]').placeholder = target.recipientDomain
+            ? `Vide = traceur d'origine @${target.recipientDomain}`
+            : "Vide = destinataire d'origine";
     });
 
     document.querySelectorAll('.tab').forEach((tab) => {
@@ -146,7 +171,7 @@
         const response = result.response ?? {};
         const message = typeof response === 'object' ? (response.message ?? response.error ?? '') : String(response);
         const emailId = typeof response === 'object' ? response.data?.email_id ?? response.email_id : null;
-        const link = emailId ? ` <a href="${escapeHtml(targetBaseUrl)}/email/voir/${encodeURIComponent(emailId)}" target="_blank" rel="noopener">#${emailId}</a>` : '';
+        const link = emailId ? ` <a href="${escapeHtml(currentTarget().baseUrl)}/email/voir/${encodeURIComponent(emailId)}" target="_blank" rel="noopener">#${emailId}</a>` : '';
         cell.className = `send-status nowrap ${result.success ? 'is-success' : 'is-error'}`;
         cell.title = result.error ?? (typeof response === 'object' ? JSON.stringify(response) : response);
         cell.innerHTML = `<i class="fas ${result.success ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> ${result.code || '—'} ${escapeHtml(message)}${link}`;
@@ -162,7 +187,7 @@
         const warning = smtp
             ? `Envoi SMTP au MTA Oxeva (${smtpTarget}) : ${ids.length} email(s) seront livrés à l'instance associée au domaine destinataire. Continuer ?`
             : `La cible est la PRODUCTION : ${ids.length} email(s) vont créer de vrais emails/leads. Continuer ?`;
-        if ((smtp || isProdTarget) && !window.confirm(warning)) {
+        if ((smtp || currentTarget().isProd) && !window.confirm(warning)) {
             return;
         }
         setLoading(sendButton, true);
