@@ -159,8 +159,21 @@ class DatabaseConnection
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 Pdo\Mysql::ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
-                PDO::ATTR_TIMEOUT => 5
+                PDO::ATTR_TIMEOUT => 5,
+                // Compte en REQUIRE SSL : TLS obligatoire, sinon MySQL répond 1045 Access denied.
+                // Pas de vérification du nom d'hôte : on passe par le tunnel (127.0.0.1) alors que
+                // le certificat est au nom du serveur MySQL ; le tunnel SSH sécurise déjà le trajet.
+                Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT => false,
             ];
+
+            // PDO n'active TLS que si une option SSL (CA, CAPATH…) est fournie : la désactivation
+            // de la vérification seule ne suffit pas. À défaut de CA, on donne le dossier de certificats d'OpenSSL.
+            $sslCa = $_ENV['SCORIMMO_DB_SSL_CA'] ?? '';
+            if ($sslCa !== '') {
+                $options[Pdo\Mysql::ATTR_SSL_CA] = $sslCa;
+            } else {
+                $options[Pdo\Mysql::ATTR_SSL_CAPATH] = openssl_get_cert_locations()['default_cert_dir'];
+            }
 
             $this->pdo = new PDO($dsn, $this->dbUser, $this->dbPassword, $options);
         } catch (PDOException $e) {
