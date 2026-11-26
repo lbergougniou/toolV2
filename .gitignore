@@ -10,3 +10,5 @@
 **/static/
 /Python/Signature_workspace/*.json
 /public/email_cache.json
+# Certificats MySQL locaux
+*.pem
